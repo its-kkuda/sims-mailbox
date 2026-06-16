@@ -4641,14 +4641,40 @@
       }
     }
 
-    function downloadCanvas(canvas, filename) {
-      const pngUrl = canvas.toDataURL("image/png");
+    function canvasToPngBlob(canvas) {
+      return new Promise((resolve, reject) => {
+        canvas.toBlob((blob) => {
+          if (blob) resolve(blob);
+          else reject(new Error("canvas blob creation failed"));
+        }, "image/png");
+      });
+    }
+
+    async function saveCanvasImage(canvas, filename) {
+      const blob = await canvasToPngBlob(canvas);
+      const file = new File([blob], filename, { type: "image/png" });
+      if (navigator.canShare && navigator.share && navigator.canShare({ files: [file] })) {
+        toast("\uC774\uBBF8\uC9C0 \uC800\uC7A5 \uB610\uB294 \uACF5\uC720\uB97C \uC120\uD0DD\uD574\uC8FC\uC138\uC694.");
+        try {
+          await navigator.share({
+            files: [file],
+            title: "\uC2EC\uC988 \uC6B0\uCCB4\uD1B5 \uC2A4\uD06C\uB9B0\uC0F7"
+          });
+          return "shared";
+        } catch (error) {
+          if (error?.name === "AbortError") return "shared";
+          console.warn("Web Share failed, trying download fallback", error);
+        }
+      }
+      const pngUrl = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = pngUrl;
       link.download = filename;
       document.body.appendChild(link);
       link.click();
       link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(pngUrl), 1000);
+      return "downloaded";
     }
 
     async function downloadLetterScreenshot() {
@@ -4664,12 +4690,12 @@
         }
         if (!isReady) throw new Error("html2canvas unavailable");
         const canvas = await captureElementCanvas(stage);
-        const filename = `심즈우체통_편지_${screenshotDateLabel(letter.createdAt)}.png`;
-        downloadCanvas(canvas, filename);
-        toast("편지 스크린샷을 저장했어요.");
+        const filename = `\uC2EC\uC988\uC6B0\uCCB4\uD1B5_\uD3B8\uC9C0_${screenshotDateLabel(letter.createdAt)}.png`;
+        const result = await saveCanvasImage(canvas, filename);
+        if (result === "downloaded") toast("\uC774\uBBF8\uC9C0\uB97C \uB2E4\uC6B4\uB85C\uB4DC\uD588\uC5B4\uC694. \uB0B4 \uD30C\uC77C\uC758 \uB2E4\uC6B4\uB85C\uB4DC \uD3F4\uB354\uB97C \uD655\uC778\uD574\uC8FC\uC138\uC694.");
       } catch (error) {
         console.warn("Screenshot failed", error);
-        toast(isReady ? "스크린샷 저장에 실패했습니다. 이미지를 다시 불러온 뒤 시도해 주세요." : "스크린샷 라이브러리 로딩에 실패했습니다.");
+        toast(isReady ? "\uBAA8\uBC14\uC77C \uBE0C\uB77C\uC6B0\uC800\uC5D0\uC11C \uC790\uB3D9 \uC800\uC7A5\uC774 \uC81C\uD55C\uB420 \uC218 \uC788\uC5B4\uC694. \uACF5\uC720 \uC800\uC7A5 \uBC29\uC2DD\uC744 \uB2E4\uC2DC \uC2DC\uB3C4\uD574\uC8FC\uC138\uC694." : "\uC2A4\uD06C\uB9B0\uC0F7 \uB77C\uC774\uBE0C\uB7EC\uB9AC \uB85C\uB529\uC5D0 \uC2E4\uD328\uD588\uC2B5\uB2C8\uB2E4.");
       } finally {
         if (image) hydrateImageElement(image, letter.image);
       }
@@ -4688,12 +4714,12 @@
         }
         if (!isReady) throw new Error("html2canvas unavailable");
         const canvas = await captureElementCanvas(stage);
-        const filename = `심즈우체통_소식_${screenshotDateLabel(news.createdAt)}.png`;
-        downloadCanvas(canvas, filename);
-        toast("오늘의 소식 스크린샷을 저장했어요.");
+        const filename = `\uC2EC\uC988\uC6B0\uCCB4\uD1B5_\uC18C\uC2DD_${screenshotDateLabel(news.createdAt)}.png`;
+        const result = await saveCanvasImage(canvas, filename);
+        if (result === "downloaded") toast("\uC774\uBBF8\uC9C0\uB97C \uB2E4\uC6B4\uB85C\uB4DC\uD588\uC5B4\uC694. \uB0B4 \uD30C\uC77C\uC758 \uB2E4\uC6B4\uB85C\uB4DC \uD3F4\uB354\uB97C \uD655\uC778\uD574\uC8FC\uC138\uC694.");
       } catch (error) {
         console.warn("News screenshot failed", error);
-        toast(isReady ? "오늘의 소식 스크린샷 저장에 실패했습니다." : "스크린샷 라이브러리 로딩에 실패했습니다.");
+        toast(isReady ? "\uBAA8\uBC14\uC77C \uBE0C\uB77C\uC6B0\uC800\uC5D0\uC11C \uC790\uB3D9 \uC800\uC7A5\uC774 \uC81C\uD55C\uB420 \uC218 \uC788\uC5B4\uC694. \uACF5\uC720 \uC800\uC7A5 \uBC29\uC2DD\uC744 \uB2E4\uC2DC \uC2DC\uB3C4\uD574\uC8FC\uC138\uC694." : "\uC2A4\uD06C\uB9B0\uC0F7 \uB77C\uC774\uBE0C\uB7EC\uB9AC \uB85C\uB529\uC5D0 \uC2E4\uD328\uD588\uC2B5\uB2C8\uB2E4.");
       } finally {
         if (image) hydrateImageElement(image, news.image);
       }
