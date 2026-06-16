@@ -1968,6 +1968,7 @@
 
   <script>
     const STORAGE_KEY = "sims-mailbox:v4";
+    const DATA_VERSION = "1.1";
     const LEGACY_KEYS = ["simsMailboxState", "sims-mailbox-state", "simsMailbox", "simsLettersApp"];
     const DB_NAME = "sims-mailbox-images";
     const DB_VERSION = 1;
@@ -2179,6 +2180,7 @@
     const uid = (prefix) => `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 
     const defaultState = {
+      dataVersion: DATA_VERSION,
       characters: [],
       letters: [],
       currentLetterId: null,
@@ -2228,6 +2230,11 @@
     function parseList(value) {
       if (Array.isArray(value)) return value.map((v) => String(v).trim()).filter(Boolean);
       return String(value || "").split(",").map((v) => v.trim()).filter(Boolean);
+    }
+
+    function asArray(value) {
+      if (Array.isArray(value)) return value;
+      return value ? [value] : [];
     }
 
     function normalizeCategoryName(category) {
@@ -2385,21 +2392,64 @@
     function sanitizeForLocalStorage(data) {
       return {
         ...data,
-        characters: data.characters.map((character) => ({
+        dataVersion: DATA_VERSION,
+        characters: asArray(data.characters).map((character) => ({
           ...character,
-          images: character.images.filter((image) => image?.type === "indexedDB" && image.id)
+          images: asArray(character.images).filter((image) => image?.type === "indexedDB" && image.id)
         })),
-        letters: data.letters.map((letter) => ({
+        letters: asArray(data.letters).map((letter) => ({
           ...letter,
           image: letter.image?.type === "indexedDB" ? letter.image : null
         })),
         currentLetterId: null,
         currentNews: null,
-        newsArchive: (data.newsArchive || []).map((news) => ({
+        newsArchive: asArray(data.newsArchive).map((news) => ({
           ...news,
           image: news.image?.type === "indexedDB" ? news.image : null
         }))
       };
+    }
+
+    function looksLikeSavedState(data) {
+      if (!data || typeof data !== "object") return false;
+      return Boolean(
+        data.characters ||
+        data.letters ||
+        data.newsArchive ||
+        data.userProfile ||
+        data.dailyRecords ||
+        data.todayRecords ||
+        data.records ||
+        data.generationMemory
+      );
+    }
+
+    function normalizeState(rawState = {}) {
+      return {
+        ...structuredClone(defaultState),
+        ...rawState,
+        dataVersion: DATA_VERSION,
+        selectedCategory: normalizeCategoryName(rawState.selectedCategory || defaultState.selectedCategory),
+        selectedCharacterId: rawState.selectedCharacterId || "all",
+        darkMode: Boolean(rawState.darkMode),
+        userProfile: normalizeUserProfile(rawState.userProfile || rawState.profile || rawState.todayMe),
+        dailyRecords: normalizeDailyRecords(rawState.dailyRecords || rawState.todayRecords || rawState.records),
+        generationMemory: normalizeGenerationMemory(rawState.generationMemory),
+        characters: asArray(rawState.characters || rawState.sims).map(normalizeCharacter).filter((character) => character.displayName),
+        letters: asArray(rawState.letters || rawState.mailHistory || rawState.history).map(normalizeLetter),
+        currentLetterId: null,
+        currentNews: null,
+        newsArchive: asArray(rawState.newsArchive || rawState.todayNewsArchive || rawState.newsHistory).map(normalizeNewsItem).filter(Boolean)
+      };
+    }
+
+    function importStatePayload(payload) {
+      const parsed = typeof payload === "string" ? JSON.parse(payload) : payload;
+      return normalizeState(parsed);
+    }
+
+    function exportStatePayload(data = state) {
+      return JSON.stringify(sanitizeForLocalStorage(data), null, 2);
     }
 
     function loadState() {
@@ -2413,27 +2463,15 @@
           const raw = localStorage.getItem(key);
           if (!raw) continue;
           const parsed = JSON.parse(raw);
-          if (!parsed || (!parsed.characters && !parsed.letters)) continue;
-          return {
-            ...defaultState,
-            ...parsed,
-            selectedCategory: normalizeCategoryName(parsed.selectedCategory || defaultState.selectedCategory),
-            selectedCharacterId: parsed.selectedCharacterId || "all",
-            userProfile: normalizeUserProfile(parsed.userProfile),
-            dailyRecords: normalizeDailyRecords(parsed.dailyRecords || parsed.todayRecords || parsed.records),
-            generationMemory: normalizeGenerationMemory(parsed.generationMemory),
-            characters: (parsed.characters || []).map(normalizeCharacter).filter((c) => c.displayName),
-            letters: (parsed.letters || []).map(normalizeLetter),
-            currentLetterId: null,
-            currentNews: null,
-            newsArchive: (parsed.newsArchive || []).map(normalizeNewsItem).filter(Boolean)
-          };
+          if (!looksLikeSavedState(parsed)) continue;
+          return normalizeState(parsed);
         } catch (_) {}
       }
       return structuredClone(defaultState);
     }
 
     function saveState() {
+      state.dataVersion = DATA_VERSION;
       localStorage.setItem(STORAGE_KEY, JSON.stringify(sanitizeForLocalStorage(state)));
       updateStorageInfo();
     }
