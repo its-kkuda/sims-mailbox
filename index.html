@@ -4571,6 +4571,48 @@
       });
     }
 
+    function screenshotDateLabel(value = new Date()) {
+      const date = value instanceof Date ? value : new Date(value || Date.now());
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      return `${year}-${month}-${day}`;
+    }
+
+    async function captureElementCanvas(target) {
+      const rect = target.getBoundingClientRect();
+      const width = Math.max(target.scrollWidth, Math.ceil(rect.width), 1);
+      const height = Math.max(target.scrollHeight, Math.ceil(rect.height), 1);
+      try {
+        return await window.html2canvas(target, {
+          backgroundColor: getComputedStyle(target).backgroundColor || "#fffaf0",
+          scale: Math.min(2, window.devicePixelRatio || 1.5),
+          useCORS: false,
+          allowTaint: false,
+          logging: false,
+          scrollX: 0,
+          scrollY: 0,
+          width,
+          height,
+          windowWidth: Math.max(document.documentElement.scrollWidth, width),
+          windowHeight: Math.max(document.documentElement.scrollHeight, height)
+        });
+      } catch (error) {
+        console.warn("html2canvas failed, trying fallback", error);
+        return stageToCanvasFallback(target);
+      }
+    }
+
+    function downloadCanvas(canvas, filename) {
+      const pngUrl = canvas.toDataURL("image/png");
+      const link = document.createElement("a");
+      link.href = pngUrl;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    }
+
     async function downloadLetterScreenshot() {
       const letter = getCurrentLetter();
       const stage = $("#letterStage");
@@ -4583,32 +4625,9 @@
           await waitForImages(stage);
         }
         if (!isReady) throw new Error("html2canvas unavailable");
-        let canvas;
-        try {
-          canvas = await window.html2canvas(stage, {
-            backgroundColor: getComputedStyle(stage).backgroundColor || "#fffaf0",
-            scale: Math.min(2, window.devicePixelRatio || 1.5),
-            useCORS: false,
-            allowTaint: false,
-            logging: false,
-            scrollX: 0,
-            scrollY: -window.scrollY,
-            windowWidth: document.documentElement.scrollWidth,
-            windowHeight: document.documentElement.scrollHeight
-          });
-        } catch (error) {
-          console.warn("html2canvas failed, trying fallback", error);
-        }
-        if (!canvas) canvas = await stageToCanvasFallback(stage);
-        const pngUrl = canvas.toDataURL("image/png");
-        const date = formatLetterDate(letter.createdAt).replace(/\.\s*/g, "-").replace(/-$/, "");
-        const filename = `sim-mail-${date}-${sanitizeFileName(letter.characterName)}.png`;
-        const link = document.createElement("a");
-        link.href = pngUrl;
-        link.download = filename;
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
+        const canvas = await captureElementCanvas(stage);
+        const filename = `심즈우체통_편지_${screenshotDateLabel(letter.createdAt)}.png`;
+        downloadCanvas(canvas, filename);
         toast("편지 스크린샷을 저장했어요.");
       } catch (error) {
         console.warn("Screenshot failed", error);
@@ -4620,7 +4639,7 @@
 
     async function downloadNewsScreenshot() {
       const news = normalizeNewsItem(state.currentNews);
-      const stage = $(".news-card") || $("#newsStage");
+      const stage = $("#newsDisplay.news-card");
       if (!news || !stage) return;
       const isReady = await ensureHtml2Canvas();
       const image = $("#currentNewsImage");
@@ -4630,32 +4649,9 @@
           await waitForImages(stage);
         }
         if (!isReady) throw new Error("html2canvas unavailable");
-        let canvas;
-        try {
-          canvas = await window.html2canvas(stage, {
-            backgroundColor: getComputedStyle(stage).backgroundColor || "#fffaf0",
-            scale: Math.min(2, window.devicePixelRatio || 1.5),
-            useCORS: false,
-            allowTaint: false,
-            logging: false,
-            scrollX: 0,
-            scrollY: -window.scrollY,
-            windowWidth: document.documentElement.scrollWidth,
-            windowHeight: document.documentElement.scrollHeight
-          });
-        } catch (error) {
-          console.warn("html2canvas news failed, trying fallback", error);
-        }
-        if (!canvas) canvas = await stageToCanvasFallback(stage);
-        const pngUrl = canvas.toDataURL("image/png");
-        const date = formatLetterDate(news.createdAt).replace(/\.\s*/g, "-").replace(/-$/, "");
-        const filename = `sims-news-${date}-${sanitizeFileName(news.characterName)}.png`;
-        const link = document.createElement("a");
-        link.href = pngUrl;
-        link.download = filename;
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
+        const canvas = await captureElementCanvas(stage);
+        const filename = `심즈우체통_소식_${screenshotDateLabel(news.createdAt)}.png`;
+        downloadCanvas(canvas, filename);
         toast("오늘의 소식 스크린샷을 저장했어요.");
       } catch (error) {
         console.warn("News screenshot failed", error);
