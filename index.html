@@ -1404,45 +1404,6 @@
       border-radius: 12px;
     }
 
-    .screenshot-preview-card {
-      width: min(720px, calc(100% - 24px));
-    }
-
-    .screenshot-preview-body {
-      display: grid;
-      gap: 14px;
-      padding: 16px;
-    }
-
-    .screenshot-preview-frame {
-      display: grid;
-      place-items: center;
-      padding: 12px;
-      background: color-mix(in srgb, var(--bg) 72%, var(--paper));
-      border: 1px solid var(--line);
-      border-radius: 14px;
-    }
-
-    .screenshot-preview-frame img {
-      display: block;
-      width: auto;
-      max-width: 100%;
-      max-height: min(68vh, 760px);
-      border-radius: 10px;
-      box-shadow: 0 14px 36px rgba(57, 41, 31, 0.18);
-    }
-
-    .screenshot-preview-actions {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 10px;
-    }
-
-    .screenshot-preview-body .hint {
-      margin: 0;
-      text-align: center;
-    }
-
     .mobile-screenshot-hint {
       display: none;
       margin: 0;
@@ -1787,7 +1748,16 @@
       display: none !important;
     }
 
+    body.screenshot-disabled #screenshotBtn,
+    body.screenshot-disabled #screenshotNewsBtn {
+      display: none !important;
+    }
+
     body.mobile-layout .mobile-screenshot-hint {
+      display: block !important;
+    }
+
+    body.screenshot-disabled .mobile-screenshot-hint {
       display: block !important;
     }
   </style>
@@ -1920,25 +1890,6 @@
       </div>
       <div class="archive-preview-body" id="archivePreviewBody"></div>
       <div class="archive-preview-actions" id="archivePreviewActions"></div>
-    </div>
-  </div>
-  <div class="modal-backdrop" id="screenshotPreviewModal" hidden>
-    <div class="modal-card screenshot-preview-card" role="dialog" aria-modal="true" aria-labelledby="screenshotPreviewTitle">
-      <div class="modal-head">
-        <h2 id="screenshotPreviewTitle">???? ????</h2>
-        <button class="secondary-btn" type="button" id="closeScreenshotPreviewModal">??</button>
-      </div>
-      <div class="screenshot-preview-body">
-        <p class="hint">???? ?????. ????? ?? ?? ??????.</p>
-        <div class="screenshot-preview-frame">
-          <img id="screenshotPreviewImage" alt="???? ????">
-        </div>
-        <div class="screenshot-preview-actions">
-          <button class="primary-btn" type="button" id="shareScreenshotBtn">??? ????</button>
-          <button class="secondary-btn" type="button" id="openScreenshotBtn">? ??? ??</button>
-          <button class="ghost-btn" type="button" id="downloadScreenshotBtn">???? ??</button>
-        </div>
-      </div>
     </div>
   </div>
   <div class="modal-backdrop" id="characterModal" hidden>
@@ -2293,16 +2244,18 @@
     let pendingImages = [];
     let pendingPrimaryImageId = "";
     let dbPromise = null;
-    let screenshotPreview = null;
 
     function syncMobileLayoutClass() {
+      const mobileUA = /Android|iPhone|iPad|iPod|Mobile|Windows Phone/i.test(navigator.userAgent || "");
       const hasCoarsePointer = window.matchMedia("(pointer: coarse)").matches;
       const smallScreen = Math.min(window.screen.width || window.innerWidth, window.screen.height || window.innerHeight) <= 860;
       const isMobileDevice =
+        mobileUA ||
         hasCoarsePointer ||
-        (hasCoarsePointer && smallScreen) ||
+        smallScreen ||
         window.innerWidth <= 860;
       document.body.classList.toggle("mobile-layout", Boolean(isMobileDevice));
+      updateScreenshotControls();
     }
 
     function escapeHtml(value) {
@@ -3465,6 +3418,7 @@
           </div>`;
         $("#favoriteBtn").disabled = true;
         $("#screenshotBtn").disabled = true;
+        updateScreenshotControls();
         return;
       }
       const character = getCharacterById(letter.characterId);
@@ -3499,6 +3453,7 @@
       $("#favoriteBtn").disabled = false;
       $("#screenshotBtn").disabled = false;
       $("#favoriteBtn").textContent = letter.favorite ? "★ 즐겨찾기됨" : "☆ 즐겨찾기";
+      updateScreenshotControls();
     }
 
     function renderCategories() {
@@ -3828,6 +3783,7 @@
       ` : `
         <button class="primary-btn" type="button" data-news-refresh>오늘의 소식 받기</button>
       `;
+      updateScreenshotControls();
     }
 
     function archiveNewsItem(newsItem) {
@@ -4417,67 +4373,42 @@
       });
     }
 
-    function setScreenshotPreview(blob, filename) {
-      if (screenshotPreview?.url) URL.revokeObjectURL(screenshotPreview.url);
+    function isMobileScreenshotBlocked() {
+      const ua = navigator.userAgent || "";
+      const mobileUA = /Android|iPhone|iPad|iPod|Mobile|Windows Phone/i.test(ua);
+      const coarsePointer = window.matchMedia("(pointer: coarse)").matches;
+      const smallViewport = window.innerWidth <= 860;
+      const smallScreen = Math.min(window.screen.width || window.innerWidth, window.screen.height || window.innerHeight) <= 860;
+      return mobileUA || coarsePointer || smallViewport || smallScreen || document.body.classList.contains("mobile-layout");
+    }
+
+    function isScreenshotControlVisible() {
+      return !isMobileScreenshotBlocked();
+    }
+
+    function updateScreenshotControls() {
+      const blocked = isMobileScreenshotBlocked();
+      document.body.classList.toggle("screenshot-disabled", blocked);
+      [$("#screenshotBtn"), $("#screenshotNewsBtn")].forEach((button) => {
+        if (button) button.hidden = blocked;
+      });
+    }
+
+    async function downloadCanvasAsPng(canvas, filename) {
+      const blob = await canvasToPngBlob(canvas);
       const url = URL.createObjectURL(blob);
-      const file = new File([blob], filename, { type: "image/png" });
-      screenshotPreview = { blob, file, filename, url };
-      $("#screenshotPreviewImage").src = url;
-      $("#screenshotPreviewModal").hidden = false;
-      toast("이미지가 준비됐어요. 공유하거나 길게 눌러 저장해주세요.");
-    }
-
-    function closeScreenshotPreview() {
-      $("#screenshotPreviewModal").hidden = true;
-    }
-
-    async function shareScreenshotPreview() {
-      if (!screenshotPreview?.file) return;
-      try {
-        if (navigator.canShare && navigator.share && navigator.canShare({ files: [screenshotPreview.file] })) {
-          toast("공유 또는 이미지 저장을 선택해주세요.");
-          await navigator.share({
-            files: [screenshotPreview.file],
-            title: "\uC2EC\uC988 \uC6B0\uCCB4\uD1B5 \uC2A4\uD06C\uB9B0\uC0F7"
-          });
-          return;
-        }
-        toast("모바일 브라우저 제한으로 자동 저장이 어려워요. 새 창에서 열어 길게 눌러 저장해주세요.");
-      } catch (error) {
-        if (error?.name !== "AbortError") {
-          console.warn("Screenshot share failed", error);
-          toast("모바일 브라우저 제한으로 자동 저장이 어려워요. 새 창에서 열어 길게 눌러 저장해주세요.");
-        }
-      }
-    }
-
-    function openScreenshotPreviewImage() {
-      if (!screenshotPreview?.url) return;
-      const opened = window.open(screenshotPreview.url, "_blank", "noopener");
-      if (!opened) toast("모바일 브라우저 제한으로 자동 저장이 어려워요. 새 창에서 열어 길게 눌러 저장해주세요.");
-    }
-
-    function tryDownloadScreenshotPreview() {
-      if (!screenshotPreview?.url) return;
       const link = document.createElement("a");
-      link.href = screenshotPreview.url;
-      link.download = screenshotPreview.filename;
+      link.href = url;
+      link.download = filename;
       document.body.appendChild(link);
       link.click();
       link.remove();
-      toast("다운로드를 시도했어요. 저장되지 않으면 새 창에서 이미지를 길게 눌러 저장해주세요.");
-    }
-
-    async function showScreenshotPreview(canvas, filename) {
-      const blob = await canvasToPngBlob(canvas);
-      setScreenshotPreview(blob, filename);
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+      toast("\uC2A4\uD06C\uB9B0\uC0F7\uC744 \uB2E4\uC6B4\uB85C\uB4DC\uD588\uC5B4\uC694.");
     }
 
     async function downloadLetterScreenshot() {
-      if (!isScreenshotControlVisible()) {
-        toast("모바일에서는 기기의 기본 스크린샷 기능을 이용해주세요.");
-        return;
-      }
+      if (!isScreenshotControlVisible()) return;
       const letter = getCurrentLetter();
       const stage = $("#letterStage");
       if (!letter || !stage) return;
@@ -4491,20 +4422,17 @@
         if (!isReady) throw new Error("html2canvas unavailable");
         const canvas = await captureElementCanvas(stage);
         const filename = `\uC2EC\uC988\uC6B0\uCCB4\uD1B5_\uD3B8\uC9C0_${screenshotDateLabel(letter.createdAt)}.png`;
-        await showScreenshotPreview(canvas, filename);
+        await downloadCanvasAsPng(canvas, filename);
       } catch (error) {
         console.warn("Screenshot failed", error);
-        toast(isReady ? "\uBAA8\uBC14\uC77C \uBE0C\uB77C\uC6B0\uC800\uC5D0\uC11C \uC790\uB3D9 \uC800\uC7A5\uC774 \uC81C\uD55C\uB420 \uC218 \uC788\uC5B4\uC694. \uACF5\uC720 \uC800\uC7A5 \uBC29\uC2DD\uC744 \uB2E4\uC2DC \uC2DC\uB3C4\uD574\uC8FC\uC138\uC694." : "\uC2A4\uD06C\uB9B0\uC0F7 \uB77C\uC774\uBE0C\uB7EC\uB9AC \uB85C\uB529\uC5D0 \uC2E4\uD328\uD588\uC2B5\uB2C8\uB2E4.");
+        toast(isReady ? "\uC2A4\uD06C\uB9B0\uC0F7 \uC800\uC7A5\uC5D0 \uC2E4\uD328\uD588\uC2B5\uB2C8\uB2E4." : "\uC2A4\uD06C\uB9B0\uC0F7 \uB77C\uC774\uBE0C\uB7EC\uB9AC \uB85C\uB529\uC5D0 \uC2E4\uD328\uD588\uC2B5\uB2C8\uB2E4.");
       } finally {
         if (image) hydrateImageElement(image, letter.image);
       }
     }
 
     async function downloadNewsScreenshot() {
-      if (!isScreenshotControlVisible()) {
-        toast("모바일에서는 기기의 기본 스크린샷 기능을 이용해주세요.");
-        return;
-      }
+      if (!isScreenshotControlVisible()) return;
       const news = normalizeNewsItem(state.currentNews);
       const stage = $("#newsDisplay.news-card");
       if (!news || !stage) return;
@@ -4518,10 +4446,10 @@
         if (!isReady) throw new Error("html2canvas unavailable");
         const canvas = await captureElementCanvas(stage);
         const filename = `\uC2EC\uC988\uC6B0\uCCB4\uD1B5_\uC18C\uC2DD_${screenshotDateLabel(news.createdAt)}.png`;
-        await showScreenshotPreview(canvas, filename);
+        await downloadCanvasAsPng(canvas, filename);
       } catch (error) {
         console.warn("News screenshot failed", error);
-        toast(isReady ? "\uBAA8\uBC14\uC77C \uBE0C\uB77C\uC6B0\uC800\uC5D0\uC11C \uC790\uB3D9 \uC800\uC7A5\uC774 \uC81C\uD55C\uB420 \uC218 \uC788\uC5B4\uC694. \uACF5\uC720 \uC800\uC7A5 \uBC29\uC2DD\uC744 \uB2E4\uC2DC \uC2DC\uB3C4\uD574\uC8FC\uC138\uC694." : "\uC2A4\uD06C\uB9B0\uC0F7 \uB77C\uC774\uBE0C\uB7EC\uB9AC \uB85C\uB529\uC5D0 \uC2E4\uD328\uD588\uC2B5\uB2C8\uB2E4.");
+        toast(isReady ? "\uC2A4\uD06C\uB9B0\uC0F7 \uC800\uC7A5\uC5D0 \uC2E4\uD328\uD588\uC2B5\uB2C8\uB2E4." : "\uC2A4\uD06C\uB9B0\uC0F7 \uB77C\uC774\uBE0C\uB7EC\uB9AC \uB85C\uB529\uC5D0 \uC2E4\uD328\uD588\uC2B5\uB2C8\uB2E4.");
       } finally {
         if (image) hydrateImageElement(image, news.image);
       }
@@ -4534,23 +4462,15 @@
       $("#characterManageBtn").addEventListener("click", openCharacterManager);
       $("#closeCharacterModal").addEventListener("click", closeCharacterManager);
       $("#closeArchivePreviewModal").addEventListener("click", closeArchivePreview);
-      $("#closeScreenshotPreviewModal").addEventListener("click", closeScreenshotPreview);
-      $("#shareScreenshotBtn").addEventListener("click", shareScreenshotPreview);
-      $("#openScreenshotBtn").addEventListener("click", openScreenshotPreviewImage);
-      $("#downloadScreenshotBtn").addEventListener("click", tryDownloadScreenshotPreview);
       $("#characterModal").addEventListener("click", (event) => {
         if (event.target.id === "characterModal") closeCharacterManager();
       });
       $("#archivePreviewModal").addEventListener("click", (event) => {
         if (event.target.id === "archivePreviewModal" || event.target.closest("[data-close-archive-preview]")) closeArchivePreview();
       });
-      $("#screenshotPreviewModal").addEventListener("click", (event) => {
-        if (event.target.id === "screenshotPreviewModal") closeScreenshotPreview();
-      });
       document.addEventListener("keydown", (event) => {
         if (event.key === "Escape" && !$("#characterModal").hidden) closeCharacterManager();
         if (event.key === "Escape" && !$("#archivePreviewModal").hidden) closeArchivePreview();
-        if (event.key === "Escape" && !$("#screenshotPreviewModal").hidden) closeScreenshotPreview();
       });
       $("#darkToggle").addEventListener("click", () => { state.darkMode = !state.darkMode; saveState(); renderAll(); });
       $("#saveTodayMeBtn").addEventListener("click", () => {
