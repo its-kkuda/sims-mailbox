@@ -1,0 +1,4837 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>심즈 우체통</title>
+  <style>
+    :root {
+      --bg: #f4ead9;
+      --paper: #fffaf0;
+      --panel: rgba(255, 250, 240, 0.82);
+      --ink: #3f3028;
+      --muted: #816f60;
+      --line: #dac7ab;
+      --tan: #c9ad86;
+      --rose: #d8a6a0;
+      --sage: #a9b99b;
+      --cocoa: #6d4f3b;
+      --shadow: 0 16px 40px rgba(72, 52, 35, 0.13);
+      --radius: 14px;
+    }
+
+    body.dark {
+      --bg: #201c19;
+      --paper: #2c2722;
+      --panel: rgba(48, 42, 36, 0.86);
+      --ink: #f3e8d7;
+      --muted: #c8b6a0;
+      --line: #5c4d3e;
+      --tan: #9d7f5c;
+      --rose: #be837e;
+      --sage: #879b78;
+      --cocoa: #f0dfc8;
+      --shadow: 0 16px 40px rgba(0, 0, 0, 0.26);
+    }
+
+    * { box-sizing: border-box; }
+
+    html,
+    body {
+      width: 100%;
+      max-width: 100%;
+      overflow-x: hidden;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at top left, rgba(216, 166, 160, 0.3), transparent 30%),
+        linear-gradient(135deg, #f6eddf, var(--bg));
+      font-family: "Pretendard", "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+    }
+
+    body.dark {
+      background:
+        radial-gradient(circle at top left, rgba(111, 82, 69, 0.38), transparent 32%),
+        linear-gradient(135deg, #171411, var(--bg));
+    }
+
+    button, input, select, textarea { font: inherit; }
+    button { cursor: pointer; }
+
+    .app {
+      width: min(1180px, 100%);
+      margin: 0 auto;
+      padding: 18px 18px 36px;
+    }
+
+    .topbar {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 14px;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-size: clamp(26px, 4vw, 40px);
+      letter-spacing: 0;
+    }
+
+    .top-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      justify-content: flex-end;
+    }
+
+    .tabs {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 6px;
+      padding: 8px;
+      margin-bottom: 16px;
+      background: color-mix(in srgb, var(--bg) 82%, transparent);
+      backdrop-filter: blur(14px);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+    }
+
+    .tab-btn {
+      min-height: 46px;
+      border: 0;
+      border-radius: 11px;
+      color: var(--muted);
+      background: transparent;
+      font-weight: 900;
+    }
+
+    .tab-btn.active {
+      color: var(--ink);
+      background: var(--paper);
+      box-shadow: 0 7px 18px rgba(72, 52, 35, 0.1);
+    }
+
+    .view { display: none; }
+    .view.active { display: block; }
+
+    .mail-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.05fr) minmax(310px, 0.95fr);
+      gap: 24px;
+      align-items: start;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+
+    .letter-stage {
+      width: min(100%, 660px);
+      min-height: 680px;
+      margin: 0 auto;
+      padding: clamp(22px, 3vw, 36px);
+      position: relative;
+      overflow: hidden;
+      --letter-bg:
+        radial-gradient(circle at 18% 12%, rgba(255, 255, 255, 0.55), transparent 18%),
+        radial-gradient(circle at 80% 18%, rgba(201, 173, 134, 0.12), transparent 22%),
+        linear-gradient(rgba(109, 79, 59, 0.04) 1px, transparent 1px) 0 80px / 100% 34px,
+        var(--paper);
+      --letter-border: rgba(201, 173, 134, 0.5);
+      --stamp-bg: linear-gradient(135deg, rgba(255, 250, 240, 0.86), rgba(239, 225, 200, 0.72));
+      --title-font: "Noto Serif KR", "Nanum Myeongjo", "Georgia", serif;
+      --body-font: "Pretendard", "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+      --signature-font: "Noto Serif KR", "Nanum Myeongjo", "Georgia", serif;
+      --body-size: clamp(17px, 1.9vw, 19px);
+      background: var(--letter-bg);
+      box-shadow: 0 20px 45px rgba(72, 52, 35, 0.16);
+    }
+
+    .letter-stage::before,
+    .letter-stage::after {
+      content: "";
+      position: absolute;
+      pointer-events: none;
+    }
+
+    .letter-stage::before {
+      inset: 14px;
+      border: 1px solid var(--letter-border);
+    }
+
+    .letter-stage::after {
+      right: 28px;
+      bottom: 24px;
+      width: 112px;
+      height: 112px;
+      border: 10px double rgba(109, 79, 59, 0.09);
+      border-radius: 50%;
+    }
+
+    .letter-inner {
+      position: relative;
+      z-index: 1;
+    }
+
+    .letter-topline {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .letter-date {
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .stamp {
+      width: 48px;
+      height: 58px;
+      display: grid;
+      place-items: center;
+      color: var(--accent, var(--cocoa));
+      background: var(--stamp-bg);
+      border: 1px dashed rgba(109, 79, 59, 0.26);
+      border-radius: 4px;
+      font-size: 20px;
+      box-shadow: 0 5px 14px rgba(72, 52, 35, 0.08);
+    }
+
+    .postmark {
+      position: absolute;
+      right: 32px;
+      bottom: 36px;
+      color: rgba(109, 79, 59, 0.13);
+      border: 2px solid currentColor;
+      border-radius: 999px;
+      padding: 14px 18px;
+      font-size: 11px;
+      font-weight: 900;
+      transform: rotate(-12deg);
+      pointer-events: none;
+    }
+
+    .letter-profile {
+      display: grid;
+      grid-template-columns: 92px minmax(0, 1fr);
+      gap: 16px;
+      align-items: center;
+      margin: 0 0 26px;
+    }
+
+    .portrait-wrap {
+      width: 92px;
+      aspect-ratio: 4 / 5;
+      padding: 5px;
+      background: #fff;
+      border: 1px solid rgba(109, 79, 59, 0.22);
+      border-radius: 7px;
+      transform: rotate(-1.2deg);
+      box-shadow: 0 12px 26px rgba(72, 52, 35, 0.16);
+    }
+
+    .portrait {
+      width: 100%;
+      height: 100%;
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+      background: linear-gradient(145deg, #e7d6ba, #cbd9c9);
+      border-radius: 4px;
+      color: rgba(109, 79, 59, 0.72);
+    }
+
+    .portrait img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .letter-title {
+      margin: 0;
+      color: var(--accent, var(--cocoa));
+      font-family: var(--title-font);
+      font-size: clamp(22px, 3vw, 31px);
+      line-height: 1.24;
+      font-weight: 850;
+      overflow-wrap: anywhere;
+    }
+
+    .letter-body {
+      min-height: 330px;
+      margin: 0;
+      padding: 6px 4px 0;
+      font-family: var(--body-font);
+      font-size: var(--body-size);
+      line-height: 1.9;
+      white-space: pre-line;
+      word-break: keep-all;
+      overflow-wrap: anywhere;
+      font-weight: 500;
+    }
+
+    .signature {
+      margin-top: 24px;
+      text-align: right;
+      color: var(--accent, var(--cocoa));
+      font-family: var(--signature-font);
+      font-size: 18px;
+      font-weight: 800;
+    }
+
+    .letter-stage.theme-floral {
+      --letter-bg:
+        radial-gradient(circle at 10% 16%, rgba(216, 166, 160, 0.22) 0 8px, transparent 9px),
+        radial-gradient(circle at 15% 20%, rgba(169, 185, 155, 0.18) 0 5px, transparent 6px),
+        radial-gradient(circle at 82% 14%, rgba(216, 166, 160, 0.16) 0 10px, transparent 11px),
+        linear-gradient(rgba(109, 79, 59, 0.035) 1px, transparent 1px) 0 78px / 100% 34px,
+        #fff6ec;
+      --letter-border: rgba(216, 166, 160, 0.46);
+      --stamp-bg: linear-gradient(135deg, #fff1ef, #f3dfd1);
+      --title-font: "Nanum Pen Script", "Noto Serif KR", serif;
+      --signature-font: "Nanum Pen Script", "Noto Serif KR", serif;
+    }
+
+    .letter-stage.theme-vintage {
+      --letter-bg:
+        radial-gradient(circle at 20% 12%, rgba(117, 84, 54, 0.08), transparent 28%),
+        radial-gradient(circle at 72% 78%, rgba(117, 84, 54, 0.07), transparent 24%),
+        linear-gradient(rgba(91, 66, 43, 0.05) 1px, transparent 1px) 0 82px / 100% 36px,
+        #f3e5c7;
+      --letter-border: rgba(117, 84, 54, 0.34);
+      --stamp-bg: linear-gradient(135deg, #f7e7c9, #ddc095);
+      --title-font: "Noto Serif KR", "Georgia", serif;
+      --signature-font: "Noto Serif KR", "Georgia", serif;
+    }
+
+    .letter-stage.theme-diary {
+      --letter-bg:
+        linear-gradient(90deg, rgba(216, 166, 160, 0.4) 42px, transparent 43px),
+        linear-gradient(rgba(88, 105, 125, 0.08) 1px, transparent 1px) 0 72px / 100% 32px,
+        #fffaf2;
+      --letter-border: rgba(88, 105, 125, 0.18);
+      --stamp-bg: linear-gradient(135deg, #fff, #e8edf2);
+      --title-font: "Noto Serif KR", "Nanum Myeongjo", serif;
+    }
+
+    .letter-stage.theme-check {
+      --letter-bg:
+        linear-gradient(rgba(109, 79, 59, 0.055) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(109, 79, 59, 0.055) 1px, transparent 1px),
+        #fff9e9;
+      background-size: 28px 28px, 28px 28px, auto;
+      --letter-border: rgba(109, 79, 59, 0.22);
+      --stamp-bg: linear-gradient(135deg, #fff8dc, #e9f0d6);
+      --title-font: "Noto Serif KR", "Nanum Myeongjo", serif;
+    }
+
+    .letter-stage.theme-postcard {
+      min-height: 610px;
+      --letter-bg:
+        linear-gradient(90deg, transparent 0 55%, rgba(109, 79, 59, 0.12) 55.2%, transparent 55.5%),
+        radial-gradient(circle at 16% 18%, rgba(255, 255, 255, 0.68), transparent 20%),
+        #fff4df;
+      --letter-border: rgba(109, 79, 59, 0.26);
+      --stamp-bg: linear-gradient(135deg, #fff, #f0dac3);
+      --title-font: "Noto Serif KR", "Georgia", serif;
+      --body-size: clamp(16.5px, 1.8vw, 18px);
+    }
+
+    .letter-stage.theme-doodle {
+      --letter-bg:
+        radial-gradient(circle at 86% 20%, rgba(169, 185, 155, 0.22) 0 4px, transparent 5px),
+        radial-gradient(circle at 12% 88%, rgba(216, 166, 160, 0.18) 0 6px, transparent 7px),
+        linear-gradient(rgba(109, 79, 59, 0.04) 1px, transparent 1px) 0 76px / 100% 31px,
+        #fffdf3;
+      --letter-border: rgba(109, 79, 59, 0.2);
+      --stamp-bg: linear-gradient(135deg, #fffaf0, #eaf0d8);
+      --title-font: "Nanum Pen Script", "Noto Serif KR", serif;
+      --signature-font: "Nanum Pen Script", "Noto Serif KR", serif;
+    }
+
+    .letter-stage.theme-luxury {
+      --letter-bg:
+        radial-gradient(circle at 82% 16%, rgba(184, 145, 65, 0.16), transparent 18%),
+        linear-gradient(rgba(184, 145, 65, 0.045) 1px, transparent 1px) 0 80px / 100% 34px,
+        #fff8e8;
+      --letter-border: rgba(184, 145, 65, 0.48);
+      --stamp-bg: linear-gradient(135deg, #fff7dd, #e9cc83);
+      --title-font: "Noto Serif KR", "Georgia", serif;
+      --signature-font: "Noto Serif KR", "Georgia", serif;
+    }
+
+    .letter-stage.theme-moon {
+      --letter-bg:
+        radial-gradient(circle at 82% 14%, rgba(167, 158, 204, 0.28), transparent 19%),
+        linear-gradient(rgba(86, 80, 123, 0.055) 1px, transparent 1px) 0 80px / 100% 34px,
+        #f5f0ff;
+      --letter-border: rgba(119, 109, 164, 0.3);
+      --stamp-bg: linear-gradient(135deg, #fbf8ff, #ddd6f0);
+      --title-font: "Noto Serif KR", "Nanum Myeongjo", serif;
+    }
+
+    .letter-stage.length-postcard {
+      min-height: 560px;
+    }
+
+    .letter-stage.length-postcard .letter-body {
+      min-height: 220px;
+      font-size: clamp(17px, 1.9vw, 19px);
+    }
+
+    .letter-stage.length-long .letter-body {
+      min-height: 390px;
+      font-size: clamp(16.5px, 1.75vw, 18px);
+      line-height: 1.84;
+    }
+
+    .letter-doodle {
+      position: absolute;
+      left: 28px;
+      bottom: 28px;
+      color: rgba(109, 79, 59, 0.18);
+      font-size: 22px;
+      transform: rotate(-8deg);
+      pointer-events: none;
+    }
+
+    .empty-letter {
+      min-height: 500px;
+      display: grid;
+      place-items: center;
+      text-align: center;
+      color: var(--muted);
+      padding: 30px 12px;
+    }
+
+    .empty-letter h2 {
+      margin: 0 0 10px;
+      color: var(--ink);
+      font-size: 28px;
+    }
+
+    .actions-panel {
+      padding: 18px;
+      background: rgba(255, 250, 240, 0.68);
+      box-shadow: 0 12px 30px rgba(72, 52, 35, 0.08);
+    }
+
+    body.dark .actions-panel { background: rgba(48, 42, 36, 0.74); }
+
+    .section-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin: 0 0 14px;
+      font-size: 20px;
+    }
+
+    .profile-box {
+      margin-bottom: 14px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: color-mix(in srgb, var(--paper) 72%, transparent);
+      overflow: hidden;
+    }
+
+    summary {
+      min-height: 48px;
+      padding: 12px 14px;
+      cursor: pointer;
+      font-weight: 900;
+    }
+
+    .profile-grid, .form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      padding: 12px;
+    }
+
+    label {
+      display: grid;
+      gap: 6px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 900;
+    }
+
+    input, select, textarea {
+      width: 100%;
+      min-height: 44px;
+      padding: 10px 11px;
+      color: var(--ink);
+      background: color-mix(in srgb, var(--paper) 88%, white);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      outline: none;
+    }
+
+    body.dark input, body.dark select, body.dark textarea {
+      background: #24201c;
+    }
+
+    textarea { min-height: 98px; resize: vertical; }
+    .span-2 { grid-column: 1 / -1; }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      min-height: 28px;
+      padding: 5px 9px;
+      color: var(--cocoa);
+      background: rgba(169, 185, 155, 0.24);
+      border: 1px solid rgba(103, 120, 93, 0.2);
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .chip.rose {
+      background: rgba(216, 166, 160, 0.22);
+      border-color: rgba(166, 84, 71, 0.18);
+    }
+
+    .category-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .target-character-field,
+    .target-character-bar label {
+      margin-bottom: 12px;
+    }
+
+    .target-character-bar {
+      max-width: 560px;
+      margin: 14px auto 0;
+      padding: 0 4px;
+    }
+
+    .category-btn,
+    .ghost-btn,
+    .primary-btn,
+    .secondary-btn,
+    .danger-btn,
+    .icon-btn {
+      min-height: 46px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      color: var(--ink);
+      background: var(--paper);
+      font-weight: 900;
+    }
+
+    .category-btn.active {
+      border-color: var(--rose);
+      background: rgba(216, 166, 160, 0.25);
+    }
+
+    .primary-btn {
+      width: 100%;
+      min-height: 54px;
+      color: #fffaf0;
+      background: linear-gradient(135deg, #8d654d, #b98278);
+      border: 0;
+      box-shadow: 0 14px 28px rgba(141, 101, 77, 0.22);
+    }
+
+    .secondary-btn { background: rgba(169, 185, 155, 0.25); }
+    .danger-btn { color: #8d342d; background: rgba(216, 166, 160, 0.18); }
+
+    .letter-actions {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+      margin: 10px 0 14px;
+    }
+
+    .letter-actions .ghost-btn {
+      width: 100%;
+      min-width: 0;
+      padding-inline: 10px;
+      white-space: nowrap;
+    }
+
+    .hint {
+      margin: 8px 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .actions-panel > .hint { display: none; }
+
+    .mini-list, .history-list, .character-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .mini-card, .history-card, .character-card {
+      padding: 12px;
+      background: color-mix(in srgb, var(--paper) 82%, transparent);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+    }
+
+    .history-card {
+      display: grid;
+      grid-template-columns: 58px minmax(0, 1fr);
+      gap: 10px;
+      align-items: start;
+    }
+
+    .mini-thumb {
+      width: 58px;
+      aspect-ratio: 4 / 5;
+      overflow: hidden;
+      border-radius: 8px;
+      background: #e7d6ba;
+    }
+
+    .mini-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+    .history-title {
+      display: block;
+      margin-bottom: 4px;
+      overflow-wrap: anywhere;
+    }
+
+    .history-meta {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+      margin-bottom: 8px;
+    }
+
+    .card-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .card-actions button, .tiny-actions button {
+      min-height: 34px;
+      padding: 6px 9px;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      color: var(--ink);
+      background: var(--paper);
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .form-shell {
+      display: grid;
+      grid-template-columns: minmax(0, 1.05fr) minmax(280px, 0.95fr);
+      gap: 18px;
+      align-items: start;
+    }
+
+    .form-shell .panel, .history-panel { padding: 16px; }
+
+    .form-sections {
+      display: grid;
+      gap: 10px;
+    }
+
+    .form-section {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      overflow: hidden;
+      background: color-mix(in srgb, var(--paper) 72%, transparent);
+    }
+
+    .preset-row, .preview-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .preset-row button {
+      min-height: 32px;
+      padding: 5px 8px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(169, 185, 155, 0.2);
+      color: var(--ink);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .preview {
+      position: relative;
+      width: 76px;
+      aspect-ratio: 4 / 5;
+      overflow: hidden;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      background: color-mix(in srgb, var(--paper) 74%, transparent);
+    }
+
+    .preview.primary {
+      border-color: var(--rose);
+      box-shadow: 0 0 0 2px rgba(216, 166, 160, 0.22);
+    }
+
+    .preview img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+    .preview-delete,
+    .preview-primary {
+      position: absolute;
+      border: 1px solid rgba(63, 48, 40, 0.16);
+      color: var(--ink);
+      background: rgba(255, 250, 240, 0.88);
+      box-shadow: 0 4px 10px rgba(72, 52, 35, 0.12);
+      font-weight: 900;
+    }
+
+    .preview-delete {
+      top: 4px;
+      right: 4px;
+      width: 26px;
+      height: 26px;
+      min-height: 26px;
+      padding: 0;
+      border-radius: 999px;
+      line-height: 1;
+    }
+
+    .preview-primary {
+      left: 4px;
+      right: 4px;
+      bottom: 4px;
+      min-height: 26px;
+      padding: 3px 5px;
+      border-radius: 7px;
+      font-size: 11px;
+    }
+
+    .preview-size {
+      position: absolute;
+      left: 4px;
+      top: 4px;
+      max-width: calc(100% - 36px);
+      padding: 3px 5px;
+      color: var(--cocoa);
+      background: rgba(255, 250, 240, 0.82);
+      border-radius: 6px;
+      font-size: 10px;
+      font-weight: 900;
+    }
+
+    .form-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .form-error {
+      display: none;
+      margin: 10px 0 0;
+      padding: 10px;
+      color: #7f2f27;
+      background: rgba(216, 166, 160, 0.22);
+      border: 1px solid rgba(127, 47, 39, 0.18);
+      border-radius: 10px;
+      font-weight: 800;
+    }
+
+    .form-error.show { display: block; }
+
+    .character-card header {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      align-items: start;
+    }
+
+    .character-card h3 {
+      margin: 0 0 8px;
+      overflow-wrap: anywhere;
+    }
+
+    .character-card p {
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .tiny-actions {
+      display: flex;
+      gap: 5px;
+    }
+
+    .profile-detail {
+      border-top: 1px solid var(--line);
+      margin-top: 8px;
+    }
+
+    .profile-detail dl {
+      display: grid;
+      gap: 8px;
+      margin: 0;
+      padding: 0 12px 12px;
+    }
+
+    .profile-detail div {
+      display: grid;
+      grid-template-columns: 90px minmax(0, 1fr);
+      gap: 8px;
+    }
+
+    dt { color: var(--muted); font-weight: 900; }
+    dd { margin: 0; overflow-wrap: anywhere; }
+
+    .archive-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .archive-tools {
+      display: grid;
+      grid-template-columns: auto auto minmax(180px, 1fr) minmax(140px, 0.6fr);
+      gap: 8px;
+      align-items: end;
+      margin-bottom: 14px;
+    }
+
+    .archive-tools label {
+      margin: 0;
+    }
+
+    .archive-mode-tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+
+    .archive-mode-tabs button.active {
+      background: rgba(216, 166, 160, 0.28);
+      border-color: var(--rose);
+    }
+
+    .workspace-grid {
+      display: grid;
+      gap: 24px;
+      align-items: start;
+    }
+
+    .workspace-grid.mode-mail {
+      display: grid;
+      grid-template-columns: minmax(0, 1.05fr) minmax(310px, 0.95fr);
+      gap: 24px;
+    }
+
+    .workspace-grid.mode-news,
+    .workspace-grid.mode-archive {
+      grid-template-columns: 1fr;
+    }
+
+    .workspace-grid.mode-news .actions-panel,
+    .workspace-grid.mode-archive .actions-panel {
+      display: none;
+    }
+
+    .workspace-content {
+      width: 100%;
+      min-width: 0;
+    }
+
+    .actions-panel {
+      width: 100%;
+      min-width: 0;
+    }
+
+    .workspace-grid.mode-mail .actions-panel {
+      order: initial;
+      width: 100%;
+    }
+
+    .workspace-grid.mode-mail .workspace-content {
+      order: initial;
+      width: 100%;
+      min-width: 0;
+    }
+
+    .workspace-grid.mode-mail #view-mail,
+    .workspace-grid.mode-mail .letter-inner {
+      width: 100%;
+      max-width: 100%;
+      min-width: 0;
+      margin-left: 0;
+      margin-right: 0;
+    }
+
+    .workspace-grid.mode-mail .letter-stage {
+      max-width: 660px;
+      margin-inline: auto;
+    }
+
+    .workspace-grid.mode-mail #letterStage.letter-stage {
+      max-width: 660px;
+      margin-inline: auto;
+    }
+
+    .side-character-tools {
+      display: grid;
+      gap: 12px;
+      padding: 0 12px 12px;
+    }
+
+    .side-character-form {
+      background: transparent;
+      border: 0;
+      box-shadow: none;
+    }
+
+    .side-character-list {
+      background: transparent;
+      border: 0;
+      box-shadow: none;
+    }
+
+    .side-character-list .section-title,
+    .side-character-form .section-title {
+      font-size: 17px;
+      margin-top: 4px;
+    }
+
+    .side-character-tools .form-grid,
+    .side-character-tools .profile-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .side-character-tools .span-2 {
+      grid-column: 1;
+    }
+
+    .news-stage {
+      min-height: 620px;
+      padding: clamp(20px, 3vw, 34px);
+      background: linear-gradient(145deg, #fff8eb, #f2e4cd);
+      overflow: hidden;
+      position: relative;
+    }
+
+    .news-stage::before,
+    .news-stage::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0.28;
+    }
+
+    .news-stage::after {
+      inset: auto 8% 8% auto;
+      width: 180px;
+      height: 180px;
+      border-radius: 50%;
+      opacity: 0.18;
+      background: rgba(255, 255, 255, 0.72);
+      filter: blur(1px);
+    }
+
+    .news-actions {
+      max-width: 560px;
+      margin: 14px auto 0;
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      position: relative;
+      z-index: 1;
+    }
+
+    .news-actions button {
+      min-width: 150px;
+    }
+
+    .archive-preview-card {
+      width: min(780px, calc(100% - 24px));
+    }
+
+    .archive-preview-body {
+      padding: 18px;
+      background: color-mix(in srgb, var(--paper) 74%, transparent);
+    }
+
+    .archive-preview-body .letter-stage,
+    .archive-preview-body .news-stage {
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    .archive-preview-body .letter-stage {
+      min-height: auto;
+    }
+
+    .archive-preview-body .letter-inner {
+      min-height: 560px;
+    }
+
+    .archive-preview-body .news-stage {
+      min-height: auto;
+      padding: clamp(14px, 3vw, 28px);
+    }
+
+    .archive-preview-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      padding: 0 18px 18px;
+      background: color-mix(in srgb, var(--paper) 74%, transparent);
+    }
+
+    .archive-preview-actions:empty {
+      display: none;
+    }
+
+    body.dark .archive-preview-body,
+    body.dark .archive-preview-actions {
+      background: rgba(44, 39, 34, 0.72);
+    }
+
+    .news-empty {
+      min-height: 520px;
+      display: grid;
+      place-content: center;
+      gap: 8px;
+      text-align: center;
+      color: var(--muted);
+    }
+
+    .news-empty h2 {
+      margin: 0;
+      color: var(--ink);
+      font-size: clamp(24px, 4vw, 34px);
+    }
+
+    .news-card {
+      position: relative;
+      z-index: 1;
+      max-width: 560px;
+      min-height: 520px;
+      margin: 0 auto;
+      padding: clamp(20px, 4vw, 34px);
+      border: 1px solid rgba(109, 79, 59, 0.16);
+      border-radius: 18px;
+      box-shadow: 0 18px 42px rgba(72, 52, 35, 0.14);
+      overflow: hidden;
+    }
+
+    .news-card::before,
+    .news-card::after {
+      content: "";
+      position: absolute;
+      pointer-events: none;
+      opacity: 0.45;
+    }
+
+    .news-card::before {
+      right: -36px;
+      top: -36px;
+      width: 130px;
+      height: 130px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.5);
+    }
+
+    .news-card::after {
+      left: 24px;
+      bottom: 18px;
+      width: 82px;
+      height: 82px;
+      border: 8px double rgba(109, 79, 59, 0.08);
+      border-radius: 50%;
+      transform: rotate(-12deg);
+    }
+
+    .news-card-inner {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      gap: 16px;
+    }
+
+    .news-head {
+      display: grid;
+      grid-template-columns: 72px minmax(0, 1fr);
+      gap: 14px;
+      align-items: center;
+    }
+
+    .news-avatar {
+      width: 72px;
+      aspect-ratio: 1;
+      padding: 4px;
+      background: rgba(255,255,255,0.72);
+      border: 1px solid rgba(109, 79, 59, 0.16);
+      border-radius: 16px;
+      transform: rotate(-2deg);
+      box-shadow: 0 10px 22px rgba(72, 52, 35, 0.12);
+      overflow: hidden;
+    }
+
+    .news-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 12px;
+      display: block;
+    }
+
+    .news-title {
+      margin: 0;
+      color: var(--ink);
+      font-size: clamp(24px, 3.2vw, 34px);
+      line-height: 1.2;
+      word-break: keep-all;
+    }
+
+    .news-date {
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .news-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .news-item {
+      min-height: 92px;
+      padding: 12px;
+      background: rgba(255,255,255,0.54);
+      border: 1px solid rgba(109, 79, 59, 0.12);
+      border-radius: 14px;
+    }
+
+    .news-item.wide {
+      grid-column: 1 / -1;
+    }
+
+    .news-label {
+      display: block;
+      margin-bottom: 8px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 900;
+    }
+
+    .news-value {
+      color: var(--ink);
+      font-size: 18px;
+      font-weight: 900;
+      line-height: 1.45;
+      white-space: pre-line;
+    }
+
+    .news-record-label {
+      display: inline-flex;
+      align-items: center;
+      width: fit-content;
+      margin-top: 8px;
+      min-height: 28px;
+      padding: 5px 10px;
+      color: var(--ink);
+      background: rgba(255,255,255,0.58);
+      border: 1px solid rgba(109, 79, 59, 0.12);
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 900;
+    }
+
+    .belonging-chips {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .belonging-chip {
+      display: inline-flex;
+      align-items: center;
+      min-height: 30px;
+      padding: 5px 9px;
+      background: rgba(255,255,255,0.62);
+      border: 1px solid rgba(109, 79, 59, 0.12);
+      border-radius: 999px;
+      font-size: 14px;
+      font-weight: 900;
+    }
+
+    .discovery-note {
+      padding: 12px 13px;
+      background: rgba(255, 250, 219, 0.72);
+      border: 1px dashed rgba(109, 79, 59, 0.18);
+      border-radius: 12px;
+      transform: rotate(-0.6deg);
+    }
+
+    .news-archive-card .history-title {
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .news-archive-label {
+      display: inline-flex;
+      margin-bottom: 6px;
+      padding: 3px 8px;
+      border-radius: 999px;
+      background: rgba(169, 185, 155, 0.2);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .news-sticker {
+      position: absolute;
+      right: 26px;
+      bottom: 24px;
+      font-size: 26px;
+      opacity: 0.72;
+      transform: rotate(8deg);
+    }
+
+    .news-theme-park { background: linear-gradient(145deg, #f6f5dd, #dfeccc); }
+    .news-theme-cafe { background: linear-gradient(145deg, #fff1dc, #e2c6a7); }
+    .news-theme-rainy { background: linear-gradient(145deg, #eef5f7, #cfdfe6); }
+    .news-theme-summer { background: linear-gradient(145deg, #fff4bf, #f7d88a); }
+    .news-theme-beach { background: linear-gradient(145deg, #e7f7f4, #b9dce7); }
+    .news-theme-garden { background: linear-gradient(145deg, #eef6dd, #c8dfb4); }
+    .news-theme-shopping { background: linear-gradient(145deg, #fff1ee, #ead4ef); }
+    .news-theme-library { background: linear-gradient(145deg, #f2eadb, #d7c6a6); }
+    .news-theme-photo-walk { background: linear-gradient(145deg, #f7efe3, #d7e1e8); }
+    .news-theme-lazy-day { background: linear-gradient(145deg, #fff3df, #e8d8bf); }
+    .news-theme-home {
+      background:
+        linear-gradient(rgba(109,79,59,0.055) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(109,79,59,0.055) 1px, transparent 1px),
+        #fff1dc;
+      background-size: 28px 28px, 28px 28px, auto;
+    }
+    .news-theme-night {
+      color: #f7ecdf;
+      background: radial-gradient(circle at 82% 14%, rgba(255,255,255,0.22), transparent 15%), linear-gradient(145deg, #3b3b62, #1f263f);
+    }
+    .news-theme-night .news-title,
+    .news-theme-night .news-value { color: #fff7e8; }
+    .news-theme-night .news-date,
+    .news-theme-night .news-label { color: rgba(255,247,232,0.72); }
+    .news-theme-night .news-item { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.16); }
+
+    .news-stage.news-theme-park::before {
+      background:
+        radial-gradient(circle at 14% 18%, rgba(216, 166, 160, 0.34) 0 5px, transparent 6px),
+        radial-gradient(circle at 26% 74%, rgba(169, 185, 155, 0.32) 0 7px, transparent 8px),
+        radial-gradient(circle at 78% 28%, rgba(245, 206, 105, 0.24) 0 4px, transparent 5px),
+        radial-gradient(circle at 88% 70%, rgba(216, 166, 160, 0.22) 0 6px, transparent 7px);
+    }
+
+    .news-stage.news-theme-cafe::before {
+      background:
+        radial-gradient(circle at 18% 25%, transparent 0 22px, rgba(126, 88, 54, 0.16) 23px 26px, transparent 27px),
+        radial-gradient(circle at 78% 66%, transparent 0 18px, rgba(126, 88, 54, 0.12) 19px 22px, transparent 23px),
+        linear-gradient(135deg, transparent 0 46%, rgba(126, 88, 54, 0.08) 46% 48%, transparent 48%);
+    }
+
+    .news-stage.news-theme-rainy::before {
+      background:
+        repeating-linear-gradient(105deg, transparent 0 22px, rgba(92, 126, 145, 0.16) 23px 25px, transparent 26px 48px),
+        radial-gradient(circle at 18% 70%, rgba(92, 126, 145, 0.16) 0 5px, transparent 6px),
+        radial-gradient(circle at 82% 24%, rgba(92, 126, 145, 0.13) 0 7px, transparent 8px);
+    }
+
+    .news-stage.news-theme-home::before {
+      background:
+        linear-gradient(rgba(109,79,59,0.07) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(109,79,59,0.07) 1px, transparent 1px),
+        radial-gradient(circle at 80% 20%, rgba(216, 166, 160, 0.16), transparent 18%);
+      background-size: 34px 34px, 34px 34px, auto;
+    }
+
+    .news-stage.news-theme-night::before {
+      background:
+        radial-gradient(circle at 18% 18%, rgba(255,255,255,0.48) 0 2px, transparent 3px),
+        radial-gradient(circle at 32% 72%, rgba(255,255,255,0.3) 0 2px, transparent 3px),
+        radial-gradient(circle at 78% 24%, rgba(255,255,255,0.38) 0 18px, transparent 19px),
+        radial-gradient(circle at 84% 30%, #1f263f 0 15px, transparent 16px);
+      opacity: 0.34;
+    }
+
+    .news-stage.news-theme-summer::before {
+      background:
+        radial-gradient(circle at 16% 22%, rgba(255, 176, 71, 0.28) 0 5px, transparent 6px),
+        radial-gradient(circle at 70% 18%, rgba(255, 255, 255, 0.36) 0 28px, transparent 29px),
+        repeating-linear-gradient(135deg, transparent 0 28px, rgba(255, 176, 71, 0.12) 29px 31px, transparent 32px 58px);
+    }
+
+    .news-stage.news-theme-beach::before {
+      background:
+        radial-gradient(circle at 18% 76%, rgba(255,255,255,0.42) 0 10px, transparent 11px),
+        radial-gradient(circle at 76% 24%, rgba(60, 143, 166, 0.18) 0 18px, transparent 19px),
+        repeating-linear-gradient(170deg, transparent 0 34px, rgba(60, 143, 166, 0.12) 35px 37px, transparent 38px 70px);
+    }
+
+    .news-stage.news-theme-garden::before {
+      background:
+        radial-gradient(ellipse at 18% 24%, rgba(104, 142, 79, 0.2) 0 12px, transparent 13px),
+        radial-gradient(ellipse at 82% 66%, rgba(104, 142, 79, 0.18) 0 16px, transparent 17px),
+        radial-gradient(circle at 70% 20%, rgba(216, 166, 160, 0.18) 0 5px, transparent 6px);
+    }
+
+    .news-stage.news-theme-shopping::before {
+      background:
+        radial-gradient(circle at 18% 18%, rgba(216, 166, 160, 0.24) 0 8px, transparent 9px),
+        radial-gradient(circle at 76% 72%, rgba(155, 121, 175, 0.18) 0 12px, transparent 13px),
+        linear-gradient(45deg, transparent 0 47%, rgba(109,79,59,0.08) 48% 49%, transparent 50%);
+    }
+
+    .news-stage.news-theme-library::before {
+      background:
+        repeating-linear-gradient(90deg, rgba(109,79,59,0.08) 0 4px, transparent 5px 24px),
+        radial-gradient(circle at 82% 18%, rgba(255,255,255,0.3), transparent 18%);
+    }
+
+    .news-stage.news-theme-photo-walk::before {
+      background:
+        radial-gradient(circle at 20% 22%, transparent 0 20px, rgba(72, 52, 35, 0.13) 21px 24px, transparent 25px),
+        radial-gradient(circle at 80% 70%, rgba(255,255,255,0.4) 0 24px, transparent 25px),
+        repeating-linear-gradient(0deg, transparent 0 30px, rgba(72, 52, 35, 0.06) 31px 32px, transparent 33px 60px);
+    }
+
+    .news-stage.news-theme-lazy-day::before {
+      background:
+        linear-gradient(rgba(109,79,59,0.055) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(109,79,59,0.055) 1px, transparent 1px),
+        radial-gradient(circle at 76% 28%, rgba(216, 166, 160, 0.18), transparent 20%);
+      background-size: 42px 42px, 42px 42px, auto;
+    }
+
+    body.dark .news-stage::before { opacity: 0.2; }
+    body.dark .news-stage::after { opacity: 0.1; }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 80;
+      display: grid;
+      place-items: center;
+      padding: 20px;
+      background: rgba(34, 27, 23, 0.58);
+      backdrop-filter: blur(6px);
+    }
+
+    .modal-backdrop[hidden] {
+      display: none;
+    }
+
+    .modal-card {
+      width: min(980px, calc(100% - 24px));
+      max-height: calc(100vh - 40px);
+      overflow-y: auto;
+      color: var(--ink);
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      box-shadow: 0 26px 70px rgba(0, 0, 0, 0.28);
+    }
+
+    body.dark .modal-card {
+      background: #2c2722;
+    }
+
+    .modal-head {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 16px;
+      background: color-mix(in srgb, var(--paper) 92%, transparent);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(10px);
+    }
+
+    body.dark .modal-head {
+      background: rgba(44, 39, 34, 0.92);
+    }
+
+    .modal-head h2 {
+      margin: 0;
+      font-size: 22px;
+    }
+
+    .modal-body {
+      display: grid;
+      grid-template-columns: minmax(0, 1.25fr) minmax(280px, 0.75fr);
+      gap: 16px;
+      padding: 16px;
+    }
+
+    .modal-body .side-character-form,
+    .modal-body .side-character-list {
+      padding: 14px;
+      background: color-mix(in srgb, var(--paper) 82%, transparent);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+    }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 20px;
+      z-index: 50;
+      transform: translate(-50%, 20px);
+      opacity: 0;
+      pointer-events: none;
+      padding: 12px 15px;
+      color: #fffaf0;
+      background: rgba(63, 48, 40, 0.92);
+      border-radius: 999px;
+      font-weight: 900;
+      transition: opacity 0.18s ease, transform 0.18s ease;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translate(-50%, 0);
+    }
+
+    @media (max-width: 860px) {
+      .app { padding: 12px 10px 28px; }
+      .topbar { grid-template-columns: 1fr; }
+      .top-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        justify-content: stretch;
+        gap: 8px;
+      }
+      .top-actions button {
+        flex: 1;
+        min-height: 44px;
+        padding: 8px 10px;
+        font-size: 14px;
+      }
+      .tabs {
+        gap: 4px;
+        padding: 6px;
+      }
+      .tab-btn {
+        min-height: 42px;
+        padding: 8px 6px;
+        font-size: 13px;
+      }
+      .mail-grid,
+      .form-shell,
+      .workspace-grid,
+      .workspace-grid.mode-mail,
+      .workspace-grid.mode-news,
+      .workspace-grid.mode-archive {
+        grid-template-columns: minmax(0, 1fr) !important;
+      }
+      .workspace-content,
+      .actions-panel {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+      }
+      .workspace-grid.mode-mail {
+        display: flex;
+        flex-direction: column;
+      }
+      .workspace-grid.mode-mail .actions-panel {
+        order: 1;
+        width: 100%;
+        min-width: 0;
+      }
+      .workspace-grid.mode-mail .workspace-content {
+        order: 2;
+        width: 100%;
+        min-width: 0;
+      }
+      .workspace-grid.mode-mail #view-mail {
+        width: 100%;
+        min-width: 0;
+      }
+      .workspace-grid.mode-mail .letter-stage {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        margin: 0;
+      }
+      .modal-body { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 620px) {
+      .app {
+        width: 100%;
+        padding: 12px 8px 28px;
+      }
+      .top-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+      .top-actions button {
+        min-height: 44px;
+        padding: 8px 10px;
+        font-size: 14px;
+      }
+      .tabs {
+        gap: 4px;
+        padding: 6px;
+        border-radius: 14px;
+      }
+      .tab-btn {
+        min-height: 42px;
+        padding: 8px 6px;
+        font-size: 13px;
+      }
+      .profile-grid, .form-grid { grid-template-columns: 1fr; gap: 9px; }
+      .category-grid { gap: 7px; }
+      .category-btn { min-height: 48px; padding: 8px 7px; font-size: 13px; }
+      .primary-btn, .secondary-btn, .ghost-btn, .danger-btn { min-height: 50px; padding: 12px 13px; }
+      .letter-actions { gap: 7px; }
+      .letter-actions .ghost-btn { min-height: 48px; padding: 10px 8px; font-size: 13px; }
+      .letter-stage {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        min-height: auto;
+        margin: 0;
+        margin-inline: 0;
+        padding: 16px 12px 20px;
+        border-radius: 12px;
+        background:
+          radial-gradient(circle at 18% 12%, rgba(255, 255, 255, 0.52), transparent 19%),
+          linear-gradient(rgba(109, 79, 59, 0.052) 1px, transparent 1px) 0 66px / 100% 31px,
+          var(--paper);
+      }
+      .workspace-grid.mode-mail #letterStage.letter-stage {
+        max-width: 100%;
+        margin-inline: 0;
+      }
+      .letter-inner {
+        width: 100%;
+        min-width: 0;
+        overflow: hidden;
+      }
+      .letter-stage::before { inset: 8px; }
+      .letter-stage::after {
+        right: 16px;
+        bottom: 18px;
+        width: 82px;
+        height: 82px;
+        border-width: 7px;
+      }
+      .letter-topline { margin-bottom: 18px; }
+      .stamp { width: 42px; height: 50px; font-size: 18px; }
+      .letter-profile {
+        grid-template-columns: 74px minmax(0, 1fr);
+        gap: 12px;
+        margin: 0 0 18px;
+        width: 100%;
+        min-width: 0;
+      }
+      .portrait-wrap {
+        width: 74px;
+        max-width: 74px;
+        transform: none;
+      }
+      .portrait,
+      .portrait img {
+        max-width: 100%;
+      }
+      .letter-title {
+        font-size: 21px;
+        word-break: keep-all;
+        overflow-wrap: anywhere;
+        min-width: 0;
+      }
+      .letter-body {
+        min-height: 0;
+        padding: 0;
+        font-size: 16px;
+        line-height: 1.86;
+        word-break: keep-all;
+        overflow-wrap: anywhere;
+        min-width: 0;
+      }
+      .signature {
+        margin-top: 16px;
+        font-size: 17px;
+        word-break: keep-all;
+        overflow-wrap: anywhere;
+        min-width: 0;
+      }
+      .postmark { right: 20px; bottom: 25px; padding: 11px 14px; font-size: 10px; }
+      .empty-letter { min-height: 430px; }
+      .empty-letter h2 { font-size: 24px; }
+      .history-card { grid-template-columns: 52px minmax(0, 1fr); }
+      .mini-thumb { width: 52px; }
+      .form-actions { grid-template-columns: 1fr; }
+      .archive-tools { grid-template-columns: 1fr 1fr; }
+      .news-stage { min-height: auto; padding: 14px; }
+      .news-card { min-height: 460px; padding: 18px; }
+      .news-head { grid-template-columns: 58px minmax(0, 1fr); gap: 10px; }
+      .news-avatar { width: 58px; border-radius: 13px; }
+      .news-grid { grid-template-columns: 1fr; }
+      .news-title { font-size: 23px; }
+      .news-value { font-size: 16px; }
+      .target-character-bar { margin-top: 10px; }
+      .news-actions { display: grid; grid-template-columns: 1fr; }
+      .news-actions button { width: 100%; }
+      .modal-backdrop {
+        align-items: start;
+        place-items: start center;
+        padding: 8px;
+      }
+      .modal-card {
+        width: 100%;
+        max-height: calc(100vh - 16px);
+        border-radius: 12px;
+      }
+      .modal-head { padding: 12px; }
+      .modal-body {
+        grid-template-columns: 1fr;
+        gap: 12px;
+        padding: 10px;
+      }
+      .form-section summary {
+        min-height: 42px;
+        padding: 10px 12px;
+      }
+      input,
+      select,
+      textarea {
+        min-height: 42px;
+        font-size: 14px;
+      }
+      .archive-preview-body { padding: 10px; }
+      .archive-preview-body .letter-inner { min-height: 500px; }
+      .archive-preview-actions { padding: 0 10px 10px; }
+    }
+
+    @media (max-width: 380px) {
+      .letter-title { font-size: 20px; }
+      .letter-body { font-size: 15.5px; }
+      .category-grid { grid-template-columns: 1fr; }
+    }
+
+    body.mobile-layout .workspace-grid,
+    body.mobile-layout .workspace-grid.mode-mail,
+    body.mobile-layout .workspace-grid.mode-news,
+    body.mobile-layout .workspace-grid.mode-archive {
+      display: flex !important;
+      flex-direction: column !important;
+      grid-template-columns: 1fr !important;
+      width: 100% !important;
+      max-width: 100% !important;
+      min-width: 0 !important;
+    }
+
+    body.mobile-layout .workspace-grid.mode-mail .actions-panel {
+      order: 1 !important;
+      width: 100% !important;
+      max-width: 100% !important;
+      min-width: 0 !important;
+    }
+
+    body.mobile-layout .workspace-grid.mode-mail .workspace-content {
+      order: 2 !important;
+      width: 100% !important;
+      max-width: 100% !important;
+      min-width: 0 !important;
+    }
+
+    body.mobile-layout #view-mail,
+    body.mobile-layout #letterStage,
+    body.mobile-layout .letter-stage,
+    body.mobile-layout .letter-inner {
+      width: 100% !important;
+      max-width: 100% !important;
+      min-width: 0 !important;
+      margin-left: 0 !important;
+      margin-right: 0 !important;
+      transform: none !important;
+    }
+
+    body.mobile-layout .letter-stage {
+      padding: 16px 12px 20px !important;
+      overflow: hidden !important;
+    }
+
+    body.mobile-layout .letter-inner {
+      overflow: hidden !important;
+    }
+
+    body.mobile-layout .letter-profile {
+      grid-template-columns: 64px minmax(0, 1fr) !important;
+      width: 100% !important;
+      min-width: 0 !important;
+      gap: 10px !important;
+    }
+
+    body.mobile-layout .portrait-wrap {
+      width: 64px !important;
+      max-width: 64px !important;
+      transform: none !important;
+    }
+
+    body.mobile-layout .letter-title {
+      min-width: 0 !important;
+      font-size: 20px !important;
+      overflow-wrap: anywhere !important;
+    }
+
+    body.mobile-layout .letter-body {
+      min-width: 0 !important;
+      font-size: 15.5px !important;
+      line-height: 1.75 !important;
+      overflow-wrap: anywhere !important;
+    }
+
+    body.mobile-layout .signature {
+      min-width: 0 !important;
+      overflow-wrap: anywhere !important;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div class="topbar">
+        <div class="brand">
+          <h1>심즈 우체통 1.0</h1>
+        </div>
+        <div class="top-actions">
+          <button class="secondary-btn" id="characterManageBtn" type="button">캐릭터</button>
+          <button class="secondary-btn" id="darkToggle" type="button">다크모드</button>
+        </div>
+      </div>
+    </header>
+
+    <nav class="tabs" aria-label="주요 메뉴">
+      <button class="tab-btn active" data-tab="mail">오늘의 편지</button>
+      <button class="tab-btn" data-tab="news">오늘의 소식</button>
+      <button class="tab-btn" data-tab="archive">보관함</button>
+    </nav>
+
+    <main class="workspace-grid mode-mail" id="workspaceGrid">
+      <div class="workspace-content">
+        <section class="view active" id="view-mail">
+          <article class="panel letter-stage" id="letterStage">
+            <div class="letter-inner" id="letterDisplay">
+              <div class="empty-letter">
+                <div>
+                  <h2>아직 우체통이 조용해요</h2>
+                  <p>캐릭터를 등록하고 오늘의 편지를 받아보세요.</p>
+                </div>
+              </div>
+            </div>
+          </article>
+        </section>
+
+        <section class="view" id="view-news">
+          <article class="panel news-stage" id="newsStage">
+            <div id="newsDisplay" class="news-empty">
+              <h2>오늘의 소식을 열어볼까요?</h2>
+              <p>오늘의 소식 받기 버튼을 눌러보세요.</p>
+            </div>
+          </article>
+          <div class="target-character-bar">
+            <label>대상 캐릭터
+              <select id="newsTargetCharacterSelect"></select>
+            </label>
+          </div>
+          <div class="news-actions" id="newsActions"></div>
+        </section>
+
+        <section class="view" id="view-archive">
+        <div class="panel history-panel">
+          <div class="archive-head">
+            <h2 class="section-title" id="archiveTitle">보관함</h2>
+          </div>
+          <div class="archive-mode-tabs">
+            <button class="secondary-btn active" type="button" id="showLetterArchive">받은 편지</button>
+            <button class="secondary-btn" type="button" id="showNewsArchive">오늘의 소식</button>
+          </div>
+          <div class="archive-tools">
+            <button class="secondary-btn" type="button" id="showAllLetters">전체 편지</button>
+            <button class="secondary-btn" type="button" id="showFavoriteLetters">즐겨찾기</button>
+            <label>캐릭터별 보기
+              <select id="archiveCharacterFilter">
+                <option value="all">전체 캐릭터</option>
+              </select>
+            </label>
+            <label>정렬
+              <select id="archiveSort">
+                <option value="newest">최신순</option>
+                <option value="oldest">오래된순</option>
+              </select>
+            </label>
+          </div>
+          <div class="history-list" id="historyList"></div>
+        </div>
+      </section>
+      </div>
+
+      <aside class="panel actions-panel">
+            <h2 class="section-title">내 상태</h2>
+            <details class="profile-box" open>
+              <summary>📝 오늘의 나</summary>
+              <div class="profile-grid">
+                <label>이름
+                  <input id="userDisplayName" placeholder="예: 꾸다" maxlength="30" />
+                </label>
+                <label>애칭
+                  <input id="userCallName" placeholder="예: 언니" maxlength="30" />
+                </label>
+                <label>기분
+                  <select id="todayRecordMood">
+                    <option>🙂 보통</option>
+                    <option>😊 좋음</option>
+                    <option>😞 피곤함</option>
+                    <option>😴 지침</option>
+                    <option>🥳 신남</option>
+                  </select>
+                </label>
+                <label class="span-2">메모
+                  <textarea id="todayMemory" placeholder="예:&#10;산책 다녀옴&#10;책 한 권 읽음&#10;집 정리함"></textarea>
+                </label>
+                <button class="ghost-btn span-2" type="button" id="saveTodayMeBtn">저장</button>
+              </div>
+            </details>
+            <div class="category-grid" id="categoryButtons"></div>
+            <label class="target-character-field">대상 캐릭터
+              <select id="targetCharacterSelect"></select>
+            </label>
+            <button class="primary-btn" id="receiveBtn" type="button">오늘의 편지 받기</button>
+            <div class="letter-actions">
+              <button class="ghost-btn" id="favoriteBtn" type="button" disabled>☆ 즐겨찾기</button>
+              <button class="ghost-btn" id="screenshotBtn" type="button" disabled>📸 스크린샷</button>
+            </div>
+            <p class="hint">등록된 캐릭터 중 한 명이 편지를 전합니다.</p>
+            
+          </aside>
+    </main>
+  </div>
+  <div class="modal-backdrop archive-preview-modal" id="archivePreviewModal" hidden>
+    <div class="modal-card archive-preview-card" role="dialog" aria-modal="true" aria-labelledby="archivePreviewTitle">
+      <div class="modal-head">
+        <h2 id="archivePreviewTitle">보관함 미리보기</h2>
+        <button class="secondary-btn" type="button" id="closeArchivePreviewModal">닫기</button>
+      </div>
+      <div class="archive-preview-body" id="archivePreviewBody"></div>
+      <div class="archive-preview-actions" id="archivePreviewActions"></div>
+    </div>
+  </div>
+  <div class="modal-backdrop" id="characterModal" hidden>
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="characterModalTitle">
+      <div class="modal-head">
+        <h2 id="characterModalTitle">캐릭터 관리</h2>
+        <button class="secondary-btn" type="button" id="closeCharacterModal">닫기</button>
+      </div>
+      <div class="modal-body">
+        
+                
+          <form class="side-character-form" id="characterForm" novalidate>
+            <h2 class="section-title"><span id="formTitle">캐릭터 등록</span></h2>
+            <input type="hidden" id="editingId" />
+            <div class="form-sections">
+              <details class="form-section" open>
+                <summary>기본 정보</summary>
+                <div class="form-grid">
+                  <label>이름
+                    <input id="displayName" required placeholder="예: 꾸다" maxlength="40" />
+                  </label>
+                  <label>성
+                    <input id="fullName" placeholder="예: 김" maxlength="60" />
+                  </label>
+                  <label>애칭
+                    <input id="nickname" placeholder="예: 꾸다" maxlength="40" />
+                  </label>
+                  <label>성별
+                    <select id="gender">
+                      <option>여성</option>
+                      <option>남성</option>
+                      <option>논바이너리</option>
+                      <option>기타</option>
+                      <option>비공개</option>
+                    </select>
+                  </label>
+                  <label>나이
+                    <input id="age" placeholder="예: 25" maxlength="30" />
+                  </label>
+                  <label>직업
+                    <input id="job" placeholder="예: 플로리스트" maxlength="60" />
+                  </label>
+                  <label>MBTI
+                    <input id="mbti" placeholder="예: INFP" maxlength="12" />
+                  </label>
+                  <label>캐릭터 아이콘
+                    <input id="signatureEmoji" placeholder="예: 🌷" maxlength="4" />
+                  </label>
+                </div>
+              </details>
+
+              <details class="form-section" open>
+                <summary>성격</summary>
+                <div class="form-grid">
+                  <label class="span-2">실제 성격
+                    <input id="personality" placeholder="예: 감성적, 다정함, 호기심 많음" />
+                  </label>
+                  <label class="span-2">말투 스타일
+                    <select id="tone"></select>
+                  </label>
+                </div>
+              </details>
+
+              <details class="form-section" open>
+                <summary>취향</summary>
+                <div class="form-grid">
+                  <label>좋아하는 것
+                    <input id="likes" placeholder="예: 카페, 사진 찍기, 리본" />
+                  </label>
+                  <label>싫어하는 것
+                    <input id="dislikes" placeholder="예: 매운 음식, 무관심한 태도" />
+                  </label>
+                </div>
+              </details>
+
+              <details class="form-section" open>
+                <summary>캐릭터 설명</summary>
+                <div class="form-grid">
+                  <label class="span-2">자유 서술
+                    <textarea id="description" placeholder="캐릭터를 자유롭게 설명해주세요"></textarea>
+                  </label>
+                </div>
+              </details>
+
+              <details class="form-section" open>
+                <summary>이미지</summary>
+                <div class="form-grid">
+                  <label class="span-2">캐릭터 이미지 업로드
+                    <input id="images" type="file" accept="image/*" multiple />
+                    <span class="hint" id="imageInfo">업로드 시 최대 500px, JPEG 78% 품질로 줄여 IndexedDB에 저장합니다.</span>
+                    <span class="hint">업로드한 이미지에서 대표 이미지 지정을 할 수 있습니다.</span>
+                    <div class="preview-row" id="imagePreview"></div>
+                  </label>
+                  <div class="hint span-2" id="storageInfo"></div>
+                </div>
+              </details>
+            </div>
+            <div class="form-actions">
+              <button class="primary-btn" type="submit" id="saveCharacterBtn">저장</button>
+              <button class="secondary-btn" type="button" id="resetFormBtn">새로 입력</button>
+            </div>
+            <div class="form-error" id="formError" role="alert"></div>
+          </form>
+
+          <div class="side-character-list">
+            <h2 class="section-title">캐릭터 목록</h2>
+            <div class="character-list" id="characterList"></div>
+          </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const STORAGE_KEY = "sims-mailbox:v4";
+    const LEGACY_KEYS = ["simsMailboxState", "sims-mailbox-state", "simsMailbox", "simsLettersApp"];
+    const DB_NAME = "sims-mailbox-images";
+    const DB_VERSION = 1;
+    const IMAGE_STORE = "images";
+    const HTML2CANVAS_SOURCES = [
+      "https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js",
+      "https://unpkg.com/html2canvas@1.4.1/dist/html2canvas.min.js"
+    ];
+
+    const categories = ["랜덤", "아침 인사", "밤 인사", "응원", "다정한 말", "일상 대화", "개그", "캐릭터 전용"];
+    const toneStyles = ["다정함", "장난기", "차분함", "현실조언형", "귀족형", "츤데레", "활발함", "감성적"];
+    const letterThemes = {
+      cream: { label: "기본 크림 편지지", className: "theme-cream", stamps: ["✉", "✨", "🌷"] },
+      floral: { label: "꽃무늬 편지지", className: "theme-floral", stamps: ["🌷", "🦋", "🍀"] },
+      vintage: { label: "빈티지 우편지", className: "theme-vintage", stamps: ["☕", "📚", "✉"] },
+      diary: { label: "다이어리 페이지", className: "theme-diary", stamps: ["📚", "📷", "✨"] },
+      check: { label: "체크무늬 메모지", className: "theme-check", stamps: ["🍀", "☕", "✨"] },
+      postcard: { label: "폴라로이드 엽서", className: "theme-postcard", stamps: ["📷", "🌷", "✨"] },
+      doodle: { label: "낙서 메모지", className: "theme-doodle", stamps: ["✨", "☕", "🍀"] },
+      luxury: { label: "고급 편지지", className: "theme-luxury", stamps: ["👑", "✨", "🌙"] },
+      moon: { label: "달빛 편지지", className: "theme-moon", stamps: ["🌙", "📚", "✨"] }
+    };
+    const newsThemes = [
+      {
+        id: "park",
+        label: "공원",
+        className: "news-theme-park",
+        sticker: "🌷",
+        mood: ["좋음", "상쾌함", "들뜸"],
+        places: ["공원", "산책길", "꽃밭"],
+        events: ["꽃 구경하다가 벌 보고 도망감", "벤치에 앉았다가 햇빛이 좋아서 한참 있었음", "예쁜 꽃을 봤는데 이름은 모름"],
+        belongings: ["📷 카메라", "🥤 작은 음료", "🌿 잎사귀", "🍬 사탕"],
+        discoveries: ["꽃 이름은 몰라도 예쁜 건 바로 알겠더라.", "공원 벤치는 생각보다 경쟁이 치열함.", "벌은 작아도 존재감이 큼."],
+        recordLabels: ["🌿 공원 기록", "🌷 꽃밭 메모", "☀ 산책 기록"],
+        quotes: ["생각보다 빨랐어.\n벌이.", "꽃 이름은 모르지만 예뻤어.", "햇빛이 괜히 기분 좋게 만들더라."]
+      },
+      {
+        id: "cafe",
+        label: "카페",
+        className: "news-theme-cafe",
+        sticker: "☕",
+        mood: ["좋음", "여유", "졸림"],
+        places: ["카페", "창가 자리", "동네 카페"],
+        events: ["커피 마시다가 컵 가장자리만 한참 봄", "디저트 고르다가 결국 제일 익숙한 걸 골랐음", "창가 자리가 비어서 괜히 기분 좋아짐"],
+        belongings: ["☕ 커피", "🍰 디저트", "📓 수첩", "🧾 영수증"],
+        discoveries: ["창가 자리는 이유 없이 조금 더 근사함.", "익숙한 디저트는 실패할 확률이 낮다.", "컵 가장자리는 은근 오래 보게 됨."],
+        recordLabels: ["☕ 카페 기록", "🍰 디저트 메모", "🪟 창가 자리"],
+        quotes: ["커피는 마셨는데 아직 졸려.", "익숙한 맛이 제일 안전해.", "창가 자리는 괜히 좋아."]
+      },
+      {
+        id: "rainy",
+        label: "비 오는 날",
+        className: "news-theme-rainy",
+        sticker: "💧",
+        mood: ["차분함", "멍함", "조용함"],
+        places: ["창가", "비 오는 길", "집 앞"],
+        events: ["우산 끝에서 떨어지는 물방울을 한참 봄", "신발이 조금 젖었지만 모른 척함", "빗소리 들으면서 아무것도 안 함"],
+        belongings: ["☂ 우산", "☕ 커피", "📓 수첩", "🧦 마른 양말"],
+        discoveries: ["비 냄새는 생각보다 다 다르더라.", "우산 끝 물방울은 계속 보게 됨.", "젖은 신발은 모른 척한다고 마르진 않음."],
+        recordLabels: ["🌧 비 오는 날 기록", "💧 빗소리 메모", "☂ 우산 기록"],
+        quotes: ["양말만 안 젖으면 괜찮아.", "빗소리는 좋은데 나가는 건 귀찮아.", "오늘은 조금 느리게 지나갔어."]
+      },
+      {
+        id: "home",
+        label: "집",
+        className: "news-theme-home",
+        sticker: "🏠",
+        mood: ["편안함", "귀찮음", "느긋함"],
+        places: ["집", "방", "소파"],
+        events: ["정리하려고 했는데 다른 것부터 구경함", "잠깐 누웠다가 시간이 사라짐", "할 일을 적어놓고 뿌듯해함"],
+        belongings: ["🛋 담요", "📱 휴대폰", "🍪 간식", "📝 할 일 메모"],
+        discoveries: ["잠깐 눕는다는 말은 위험한 주문임.", "적어둔 할 일은 약간 해낸 기분을 줌.", "소파는 가끔 시간을 훔친다."],
+        recordLabels: ["🏠 집 기록", "🛋 느긋한 메모", "📝 할 일 기록"],
+        quotes: ["적어둔 것도 일단 한 거라고 치자.", "잠깐만 누우려고 했는데.", "오늘의 나는 꽤 느슨했어."]
+      },
+      {
+        id: "night",
+        label: "밤 산책",
+        className: "news-theme-night",
+        sticker: "🌙",
+        mood: ["차분함", "감성적", "조용함"],
+        places: ["밤길", "가로등 아래", "조용한 골목"],
+        events: ["가로등 불빛 아래에서 괜히 천천히 걸음", "하늘을 봤는데 별은 별로 없었음", "밤공기가 생각보다 시원해서 조금 더 걸음"],
+        belongings: ["🌙 얇은 겉옷", "🎧 이어폰", "🔑 열쇠", "📱 휴대폰"],
+        discoveries: ["별은 없어도 밤은 밤대로 분위기가 있음.", "가로등 아래에서는 그림자도 조금 연기함.", "밤공기는 같은 길도 낯설게 만듦."],
+        recordLabels: ["🌙 밤 산책 기록", "✨ 가로등 메모", "🌌 조용한 밤"],
+        quotes: ["별은 없었지만 분위기는 있었어.", "밤에는 발걸음도 조금 작아져.", "조용한 길은 이상하게 오래 기억나."]
+      },
+      {
+        id: "summer",
+        label: "여름 낮",
+        className: "news-theme-summer",
+        sticker: "☀",
+        mood: ["나른함", "쨍함", "들뜸"],
+        places: ["햇빛 드는 길", "그늘 아래", "동네 골목"],
+        events: ["그늘만 골라 걸었는데도 더웠음", "아이스크림이 생각보다 빨리 녹아서 당황함", "햇빛이 너무 밝아서 괜히 눈을 찡그림"],
+        belongings: ["🧊 차가운 음료", "🕶 선글라스", "🍦 아이스크림", "🧴 선크림"],
+        discoveries: ["여름 낮에는 그림자도 약간 지쳐 보임.", "차가운 음료의 첫 모금은 꽤 중요한 사건임.", "햇빛은 조용한데 존재감이 너무 큼."],
+        recordLabels: ["☀ 여름 낮 기록", "🍦 더운 날 메모", "🧊 차가운 기록"],
+        quotes: ["햇빛이 너무 성실했어.", "아이스크림은 기다려주지 않더라.", "그늘이 이렇게 반가운 거였나."]
+      },
+      {
+        id: "beach",
+        label: "바닷가",
+        className: "news-theme-beach",
+        sticker: "🌊",
+        mood: ["상쾌함", "들뜸", "멍함"],
+        places: ["바닷가", "모래사장", "방파제 근처"],
+        events: ["파도 소리 듣다가 말을 잠깐 잊음", "신발에 모래가 들어갔지만 그냥 걸음", "멀리 보이는 배를 괜히 오래 봄"],
+        belongings: ["🐚 조개껍데기", "🥤 차가운 음료", "📷 카메라", "🧢 모자"],
+        discoveries: ["모래는 꼭 집까지 따라오려는 의지가 있음.", "파도는 같은 말을 계속하는데 이상하게 안 질림.", "바다는 멀리 볼수록 더 조용해 보임."],
+        recordLabels: ["🌊 바닷가 기록", "🐚 모래사장 메모", "🧢 바람 기록"],
+        quotes: ["신발 안에 모래가 들어갔어. 꽤 적극적으로.", "파도는 말이 많은데 듣기 싫진 않았어.", "바람 때문에 머리가 제멋대로였어."]
+      },
+      {
+        id: "garden",
+        label: "정원",
+        className: "news-theme-garden",
+        sticker: "🌿",
+        mood: ["평온함", "상쾌함", "궁금함"],
+        places: ["정원", "화분 옆", "작은 텃밭"],
+        events: ["잎사귀에 물방울이 맺힌 걸 한참 봄", "화분 위치를 바꿨다가 다시 원래대로 둠", "작은 벌레를 보고 길을 비켜줌"],
+        belongings: ["🪴 작은 화분", "💧 물뿌리개", "🧤 장갑", "🌱 씨앗 봉투"],
+        discoveries: ["잎사귀는 생각보다 각자 성격이 있어 보임.", "흙 냄새는 날씨에 따라 조금씩 달라짐.", "작은 화분도 자리를 바꾸면 표정이 달라짐."],
+        recordLabels: ["🌿 정원 기록", "🪴 화분 메모", "🌱 식물 기록"],
+        quotes: ["화분이 나보다 침착해 보였어.", "물 주는 타이밍은 은근 어렵다.", "잎사귀가 반짝이면 괜히 뿌듯해."]
+      },
+      {
+        id: "shopping",
+        label: "외출",
+        className: "news-theme-shopping",
+        sticker: "🛍",
+        mood: ["분주함", "가벼움", "고민됨"],
+        places: ["상점가", "문구점", "마트"],
+        events: ["필요한 것만 사려고 했는데 다른 것도 구경함", "계산대 앞에서 갑자기 살지 말지 고민함", "예쁜 포장지를 봤는데 쓸 곳은 없었음"],
+        belongings: ["🛍 작은 쇼핑백", "🧾 영수증", "🖊 펜", "🍬 사탕"],
+        discoveries: ["문구점은 목적 없이 들어가면 위험함.", "영수증은 늘 생각보다 길다.", "필요 없는 물건이 제일 귀여워 보일 때가 있음."],
+        recordLabels: ["🛍 외출 기록", "🧾 쇼핑 메모", "🖊 문구점 기록"],
+        quotes: ["분명 필요한 것만 사려고 했는데.", "구경만 한다는 말은 가끔 거짓말이 돼.", "영수증이 오늘 일을 다 알고 있어."]
+      },
+      {
+        id: "library",
+        label: "조용한 기록",
+        className: "news-theme-library",
+        sticker: "📚",
+        mood: ["차분함", "졸림", "집중함"],
+        places: ["도서관", "책장 앞", "조용한 자리"],
+        events: ["책등만 보다가 시간이 조금 지나감", "한 문장을 읽고 다시 처음으로 돌아감", "조용히 하려다가 의자가 더 크게 소리 냄"],
+        belongings: ["📚 빌린 책", "✏ 연필", "📓 노트", "🔖 책갈피"],
+        discoveries: ["책장은 가만히 있는데 이상하게 말을 거는 느낌이 있음.", "조용한 곳에서는 작은 소리가 더 자신감 있어짐.", "책갈피는 늘 생각보다 중요한 물건임."],
+        recordLabels: ["📚 조용한 기록", "🔖 책갈피 메모", "✏ 읽다 만 기록"],
+        quotes: ["의자가 나보다 시끄러웠어.", "읽은 줄 알았는데 같은 줄이었어.", "조용해서 더 졸렸어."]
+      },
+      {
+        id: "photo_walk",
+        label: "사진 산책",
+        className: "news-theme-photo-walk",
+        sticker: "📷",
+        mood: ["들뜸", "집중함", "아쉬움"],
+        places: ["골목길", "햇빛 드는 벽", "산책길"],
+        events: ["마음에 드는 구도를 찾다가 지나침", "찍으려는 순간 누가 지나가서 기다림", "예쁜 빛을 봤는데 카메라를 늦게 꺼냄"],
+        belongings: ["📷 카메라", "🧃 음료", "🎞 필름", "📱 휴대폰"],
+        discoveries: ["좋은 빛은 기다려주지 않음.", "사진은 못 찍어도 본 건 남는 것 같음.", "벽 색깔도 시간대에 따라 기분이 달라짐."],
+        recordLabels: ["📷 사진 산책 기록", "🎞 빛 메모", "🚶 산책 기록"],
+        quotes: ["찍으려니까 빛이 도망갔어.", "아까 그 장면, 다시 안 오더라.", "사진 못 찍은 사진이 제일 오래 생각나."]
+      },
+      {
+        id: "lazy_day",
+        label: "느슨한 하루",
+        className: "news-theme-lazy-day",
+        sticker: "🛋",
+        mood: ["느긋함", "귀찮음", "편안함"],
+        places: ["소파", "이불 안", "느린 오후"],
+        events: ["할 일을 생각만 하고 꽤 만족함", "잠깐 쉬려다가 자세가 너무 편해짐", "리모컨을 찾다가 그냥 안 찾기로 함"],
+        belongings: ["🛋 담요", "🍪 간식", "📱 휴대폰", "☁ 쿠션"],
+        discoveries: ["아무것도 안 하는 일도 은근 체력이 필요함.", "편한 자세는 한 번 정하면 바꾸기 어려움.", "쿠션은 가까울수록 더 필요해짐."],
+        recordLabels: ["🛋 느슨한 하루 기록", "☁ 쉬는 날 메모", "🍪 간식 기록"],
+        quotes: ["잠깐만 쉬려고 했는데 꽤 본격적이었어.", "오늘의 계획은 느슨하게 흘러갔어.", "쿠션이 나를 붙잡았어."]
+      }
+    ];
+
+    const themeKeywordMap = {
+      cafe: ["커피", "카페", "차", "창가", "음료", "디저트", "여유", "조용", "휘건"],
+      library: ["독서", "책", "공부", "분석", "조용", "지식", "보고서", "작가", "완벽주의", "ISTJ", "INTJ"],
+      night: ["밤", "야경", "조용", "생각", "차분", "감성", "혼자", "정리", "ISTJ", "INFJ"],
+      home: ["집", "휴식", "소파", "느긋", "혼자", "가족", "회사", "업무", "보고서", "완벽주의"],
+      rainy: ["비", "우산", "빗소리", "차분", "멍함", "창문", "조용"],
+      lazy_day: ["느슨", "귀찮", "휴식", "소파", "잠", "집", "느긋", "에너지"],
+      photo_walk: ["사진", "카메라", "구도", "빛", "촬영", "스샷", "산책", "다온", "ENFP", "예술", "감성"],
+      park: ["공원", "산책", "꽃", "자연", "햇빛", "활발", "ENFP", "동물"],
+      garden: ["정원", "꽃", "식물", "자연", "농장", "동물", "시골", "흙", "양", "포피", "리본"],
+      beach: ["바다", "해변", "여름", "수영", "파도", "모래"],
+      summer: ["여름", "햇빛", "더위", "얼음", "아이스", "시원"],
+      shopping: ["외출", "쇼핑", "가게", "시장", "옷", "소품", "리본", "친구"]
+    };
+
+    const fallbackImage = "data:image/svg+xml;charset=UTF-8," + encodeURIComponent(`
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 300">
+        <defs><linearGradient id="g" x1="0" x2="1" y1="0" y2="1"><stop stop-color="#f4dfc8"/><stop offset="1" stop-color="#b9c9aa"/></linearGradient></defs>
+        <rect width="240" height="300" rx="18" fill="url(#g)"/>
+        <circle cx="120" cy="104" r="46" fill="#fff7e8" opacity=".9"/>
+        <path d="M54 254c13-62 119-62 132 0" fill="#fff7e8" opacity=".9"/>
+        <path d="M79 70c17-31 65-33 84 0 13 24 4 59-10 72-20-11-47-11-66 0-15-15-20-47-8-72Z" fill="#8d654d" opacity=".7"/>
+      </svg>`);
+
+    const $ = (selector) => document.querySelector(selector);
+    const $$ = (selector) => [...document.querySelectorAll(selector)];
+    const sample = (arr) => arr[Math.floor(Math.random() * arr.length)];
+    const uid = (prefix) => `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+
+    const defaultState = {
+      characters: [],
+      letters: [],
+      currentLetterId: null,
+      currentNews: null,
+      newsArchive: [],
+      selectedCategory: "랜덤",
+      selectedCharacterId: "all",
+      darkMode: false,
+      userProfile: {
+        displayName: "",
+        callName: "",
+        mood: "보통"
+      },
+      dailyRecords: {},
+      generationMemory: []
+    };
+
+    let state = loadState();
+    let archiveMode = "letters";
+    let archiveFilter = "all";
+    let archiveCharacterFilter = "all";
+    let archiveSort = "newest";
+    let pendingImages = [];
+    let pendingPrimaryImageId = "";
+    let dbPromise = null;
+
+    function syncMobileLayoutClass() {
+      const hasCoarsePointer = window.matchMedia("(pointer: coarse)").matches;
+      const smallScreen = Math.min(window.screen.width || window.innerWidth, window.screen.height || window.innerHeight) <= 860;
+      const isMobileDevice =
+        hasCoarsePointer ||
+        (hasCoarsePointer && smallScreen) ||
+        window.innerWidth <= 860;
+      document.body.classList.toggle("mobile-layout", Boolean(isMobileDevice));
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? "").replace(/[&<>"']/g, (char) => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;"
+      }[char]));
+    }
+
+    function parseList(value) {
+      if (Array.isArray(value)) return value.map((v) => String(v).trim()).filter(Boolean);
+      return String(value || "").split(",").map((v) => v.trim()).filter(Boolean);
+    }
+
+    function normalizeCategoryName(category) {
+      const map = {
+        "좋은 아침": "아침 인사",
+        "좋은 밤": "밤 인사",
+        "좋은 말": "다정한 말"
+      };
+      const normalized = map[category] || category || "랜덤";
+      return categories.includes(normalized) ? normalized : "랜덤";
+    }
+
+    function normalizeUserProfile(profile = {}) {
+      return {
+        displayName: String(profile.displayName || profile.name || "").trim(),
+        callName: String(profile.callName || profile.nickname || "").trim(),
+        mood: String(profile.mood || "보통").trim() || "보통"
+      };
+    }
+
+    function todayRecordKey(date = new Date()) {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      return `${year}-${month}-${day}`;
+    }
+
+    function normalizeDailyRecord(record = {}, dateKey = todayRecordKey()) {
+      const legacyParts = [
+        record.activities || record.todayActivities || "",
+        record.memory || record.todayMemory || ""
+      ].map((value) => String(value).trim()).filter(Boolean);
+      return {
+        date: record.date || dateKey,
+        activities: String(record.activities || record.todayActivities || "").trim(),
+        mood: String(record.mood || record.todayMood || "🙂 보통").trim() || "🙂 보통",
+        memory: legacyParts.join("\n"),
+        updatedAt: record.updatedAt || new Date().toISOString()
+      };
+    }
+
+    function normalizeDailyRecords(records = {}) {
+      const normalized = {};
+      if (Array.isArray(records)) {
+        records.forEach((record) => {
+          const key = record.date || record.dateKey || todayRecordKey(new Date(record.updatedAt || Date.now()));
+          normalized[key] = normalizeDailyRecord(record, key);
+        });
+        return normalized;
+      }
+      Object.entries(records || {}).forEach(([key, record]) => {
+        normalized[key] = normalizeDailyRecord(record, key);
+      });
+      return normalized;
+    }
+
+    function normalizeGenerationMemory(memory = []) {
+      return (Array.isArray(memory) ? memory : [])
+        .filter(Boolean)
+        .map((item) => ({
+          characterId: item.characterId || "",
+          category: normalizeCategoryName(item.category || "랜덤"),
+          topic: item.topic || "",
+          opener: item.opener || "",
+          question: item.question || "",
+          closing: item.closing || "",
+          lines: Array.isArray(item.lines) ? item.lines.slice(0, 8) : [],
+          createdAt: item.createdAt || new Date().toISOString()
+        }))
+        .slice(0, 30);
+    }
+
+    function normalizeImageRef(image) {
+      if (!image) return null;
+      if (typeof image === "string") {
+        if (image.startsWith("data:image")) return { type: "localData", dataUrl: image };
+        return { type: "indexedDB", id: image };
+      }
+      if (image.type === "indexedDB" && image.id) return { type: "indexedDB", id: image.id };
+      if (image.imageId) return { type: "indexedDB", id: image.imageId, size: image.size || 0, name: image.name || "" };
+      if (image.dataUrl || image.data) return { type: "localData", dataUrl: image.dataUrl || image.data };
+      if (image.id) return { type: "indexedDB", id: image.id };
+      return null;
+    }
+
+    function normalizeCharacter(character = {}) {
+      const displayName = String(character.displayName || character.name || character.characterName || "").trim();
+      const images = (character.images || []).map(normalizeImageRef).filter(Boolean);
+      const primaryImageId = character.primaryImageId || character.representativeImageId || character.coverImageId || "";
+      return {
+        id: character.id || uid("char"),
+        displayName,
+        fullName: String(character.fullName || "").trim(),
+        nickname: String(character.nickname || "").trim(),
+        gender: String(character.gender || "비공개").trim(),
+        age: String(character.age || "").trim(),
+        mbti: String(character.mbti || "").trim(),
+        job: String(character.job || "").trim(),
+        likes: parseList(character.likes),
+        dislikes: parseList(character.dislikes),
+        personality: parseList(character.personality || character.realPersonality),
+        tone: toneStyles.includes(character.tone) ? character.tone : (toneStyles.includes(character.toneStyle) ? character.toneStyle : "다정함"),
+        description: String(character.description || "").trim(),
+        signatureEmoji: String(character.signatureEmoji || "").trim().slice(0, 4),
+        images,
+        primaryImageId: images.some((image) => image.id === primaryImageId) ? primaryImageId : "",
+        createdAt: character.createdAt || new Date().toISOString()
+      };
+    }
+
+    function normalizeLetter(letter = {}) {
+      return {
+        id: letter.id || uid("letter"),
+        characterId: letter.characterId || "",
+        characterName: letter.characterName || letter.sender || "",
+        title: letter.title || "작은 편지",
+        category: normalizeCategoryName(letter.category || "다정한 말"),
+        body: letter.body || letter.content || "",
+        signature: letter.signature || "",
+        accentColor: /^#[0-9a-f]{6}$/i.test(letter.accentColor || "") ? letter.accentColor : "#d8a6a0",
+        image: normalizeImageRef(letter.image),
+        themeId: letterThemes[letter.themeId] ? letter.themeId : "cream",
+        stampEmoji: String(letter.stampEmoji || "").trim().slice(0, 4),
+        doodleEmoji: String(letter.doodleEmoji || "").trim().slice(0, 4),
+        lengthType: letter.lengthType || "normal",
+        createdAt: letter.createdAt || new Date().toISOString(),
+        dateLabel: letter.dateLabel || todayKey(),
+        favorite: Boolean(letter.favorite)
+      };
+    }
+
+    function normalizeNewsItem(news = null) {
+      if (!news) return null;
+      const theme = newsThemes.find((item) => item.id === news.themeId) || newsThemes[0];
+      return {
+        id: news.id || uid("news"),
+        characterId: news.characterId || "",
+        characterName: String(news.characterName || "").trim(),
+        title: news.title || `${news.characterName || "누군가"}의 오늘`,
+        themeId: theme.id,
+        mood: String(news.mood || sample(theme.mood)).trim(),
+        place: String(news.place || sample(theme.places)).trim(),
+        event: String(news.event || sample(theme.events)).trim(),
+        recordLabel: String(news.recordLabel || sample(theme.recordLabels || [theme.label])).trim(),
+        belongings: (Array.isArray(news.belongings) && news.belongings.length ? news.belongings : [sample(theme.belongings || [])].filter(Boolean)).map((item) => String(item).trim()).filter(Boolean).slice(0, 4),
+        discovery: String(news.discovery || sample(theme.discoveries || ["별건 아닌데 기억에 남았어."])).trim(),
+        quote: String(news.quote || sample(theme.quotes)).trim(),
+        image: normalizeImageRef(news.image),
+        accentColor: /^#[0-9a-f]{6}$/i.test(news.accentColor || "") ? news.accentColor : "#d8a6a0",
+        isFavorite: Boolean(news.isFavorite),
+        createdAt: news.createdAt || new Date().toISOString()
+      };
+    }
+
+    function sanitizeForLocalStorage(data) {
+      return {
+        ...data,
+        characters: data.characters.map((character) => ({
+          ...character,
+          images: character.images.filter((image) => image?.type === "indexedDB" && image.id)
+        })),
+        letters: data.letters.map((letter) => ({
+          ...letter,
+          image: letter.image?.type === "indexedDB" ? letter.image : null
+        })),
+        currentLetterId: null,
+        currentNews: null,
+        newsArchive: (data.newsArchive || []).map((news) => ({
+          ...news,
+          image: news.image?.type === "indexedDB" ? news.image : null
+        }))
+      };
+    }
+
+    function loadState() {
+      const keys = [STORAGE_KEY, ...LEGACY_KEYS];
+      for (let i = 0; i < localStorage.length; i += 1) {
+        const key = localStorage.key(i);
+        if (key && /sims|mail|letter|우체통/i.test(key) && !keys.includes(key)) keys.push(key);
+      }
+      for (const key of keys) {
+        try {
+          const raw = localStorage.getItem(key);
+          if (!raw) continue;
+          const parsed = JSON.parse(raw);
+          if (!parsed || (!parsed.characters && !parsed.letters)) continue;
+          return {
+            ...defaultState,
+            ...parsed,
+            selectedCategory: normalizeCategoryName(parsed.selectedCategory || defaultState.selectedCategory),
+            selectedCharacterId: parsed.selectedCharacterId || "all",
+            userProfile: normalizeUserProfile(parsed.userProfile),
+            dailyRecords: normalizeDailyRecords(parsed.dailyRecords || parsed.todayRecords || parsed.records),
+            generationMemory: normalizeGenerationMemory(parsed.generationMemory),
+            characters: (parsed.characters || []).map(normalizeCharacter).filter((c) => c.displayName),
+            letters: (parsed.letters || []).map(normalizeLetter),
+            currentLetterId: null,
+            currentNews: null,
+            newsArchive: (parsed.newsArchive || []).map(normalizeNewsItem).filter(Boolean)
+          };
+        } catch (_) {}
+      }
+      return structuredClone(defaultState);
+    }
+
+    function saveState() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(sanitizeForLocalStorage(state)));
+      updateStorageInfo();
+    }
+
+    function openImageDb() {
+      if (dbPromise) return dbPromise;
+      dbPromise = new Promise((resolve, reject) => {
+        const request = indexedDB.open(DB_NAME, DB_VERSION);
+        request.onupgradeneeded = () => {
+          const db = request.result;
+          if (!db.objectStoreNames.contains(IMAGE_STORE)) db.createObjectStore(IMAGE_STORE, { keyPath: "id" });
+        };
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+      return dbPromise;
+    }
+
+    async function putImage(record) {
+      const db = await openImageDb();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction(IMAGE_STORE, "readwrite");
+        tx.objectStore(IMAGE_STORE).put(record);
+        tx.oncomplete = () => resolve(record);
+        tx.onerror = () => reject(tx.error);
+      });
+    }
+
+    async function getImage(id) {
+      if (!id) return null;
+      const db = await openImageDb();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction(IMAGE_STORE, "readonly");
+        const request = tx.objectStore(IMAGE_STORE).get(id);
+        request.onsuccess = () => resolve(request.result || null);
+        request.onerror = () => reject(request.error);
+      });
+    }
+
+    async function deleteImage(id) {
+      if (!id) return;
+      const db = await openImageDb();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction(IMAGE_STORE, "readwrite");
+        tx.objectStore(IMAGE_STORE).delete(id);
+        tx.oncomplete = resolve;
+        tx.onerror = () => reject(tx.error);
+      });
+    }
+
+    async function dataUrlToBlob(dataUrl) {
+      const response = await fetch(dataUrl);
+      return response.blob();
+    }
+
+    function collectLegacyCharacters() {
+      const found = [];
+      const keys = [STORAGE_KEY, ...LEGACY_KEYS];
+      for (let i = 0; i < localStorage.length; i += 1) {
+        const key = localStorage.key(i);
+        if (key && /sims|mail|letter|우체통/i.test(key) && !keys.includes(key)) keys.push(key);
+      }
+      for (const key of keys) {
+        try {
+          const parsed = JSON.parse(localStorage.getItem(key) || "");
+          if (parsed?.characters?.length) found.push(...parsed.characters);
+        } catch (_) {}
+      }
+      return found;
+    }
+
+    function sameLegacyCharacter(current, legacy) {
+      const names = [
+        legacy.displayName,
+        legacy.name,
+        legacy.characterName,
+        legacy.fullName
+      ].map((value) => String(value || "").trim()).filter(Boolean);
+      return legacy.id === current.id || names.includes(current.displayName) || (current.fullName && names.includes(current.fullName));
+    }
+
+    function legacyLocalImagesFor(character, legacyCharacters) {
+      return legacyCharacters
+        .filter((legacy) => sameLegacyCharacter(character, legacy))
+        .flatMap((legacy) => legacy.images || [])
+        .map(normalizeImageRef)
+        .filter((image) => image?.type === "localData" && image.dataUrl);
+    }
+
+    async function storeLocalImageRef(image, name) {
+      const blob = await dataUrlToBlob(image.dataUrl);
+      const record = { id: uid("img"), blob, mime: blob.type || "image/jpeg", size: blob.size, name, createdAt: new Date().toISOString() };
+      await putImage(record);
+      return { type: "indexedDB", id: record.id, size: record.size, name: record.name };
+    }
+
+    async function migrateLegacyImages() {
+      let migrated = 0;
+      let recovered = 0;
+      let missing = 0;
+      const legacyCharacters = collectLegacyCharacters();
+      for (const character of state.characters) {
+        const next = [];
+        let characterMissing = 0;
+        for (const image of character.images) {
+          if (image.type === "localData") {
+            try {
+              next.push(await storeLocalImageRef(image, `${character.displayName} 이미지`));
+              migrated += 1;
+            } catch (_) {}
+          } else {
+            const record = await getImage(image.id);
+            if (record?.blob) {
+              next.push({ ...image, size: image.size || record.size || record.blob.size || 0, name: image.name || record.name || "" });
+            } else {
+              missing += 1;
+              characterMissing += 1;
+            }
+          }
+        }
+        if (!next.length || characterMissing) {
+          const legacyImages = legacyLocalImagesFor(character, legacyCharacters);
+          for (const image of legacyImages) {
+            try {
+              next.push(await storeLocalImageRef(image, `${character.displayName} 복구 이미지`));
+              recovered += 1;
+            } catch (_) {}
+          }
+        }
+        character.images = next;
+        if (!character.images.some((image) => image.id === character.primaryImageId)) {
+          character.primaryImageId = character.images[0]?.id || "";
+        }
+      }
+      for (const letter of state.letters) {
+        if (letter.image?.type === "localData") {
+          try {
+            letter.image = await storeLocalImageRef(letter.image, "편지 이미지");
+            migrated += 1;
+          } catch (_) {
+            letter.image = null;
+          }
+        } else if (letter.image?.type === "indexedDB") {
+          const record = await getImage(letter.image.id);
+          if (!record?.blob) {
+            const character = getCharacterById(letter.characterId);
+            letter.image = getRandomImage(character);
+            missing += 1;
+          }
+        } else {
+          const character = getCharacterById(letter.characterId);
+          letter.image = getRandomImage(character);
+        }
+      }
+      if (migrated || recovered || missing) {
+        saveState();
+        toast(recovered ? `기존 이미지 ${recovered}장을 복구했어요.` : `기존 이미지 ${migrated}장을 IndexedDB로 옮겼어요.`);
+      }
+    }
+
+    function todayKey() {
+      return new Date().toLocaleDateString("ko-KR", { year: "numeric", month: "2-digit", day: "2-digit" });
+    }
+
+    function formatLetterDate(value) {
+      const date = value ? new Date(value) : new Date();
+      if (Number.isNaN(date.getTime())) return todayKey();
+      return `${date.getFullYear()}. ${date.getMonth() + 1}. ${date.getDate()}.`;
+    }
+
+    function toast(message) {
+      const el = $("#toast");
+      el.textContent = message;
+      el.classList.add("show");
+      clearTimeout(toast.timer);
+      toast.timer = setTimeout(() => el.classList.remove("show"), 1800);
+    }
+
+    function showFormError(message) {
+      const el = $("#formError");
+      el.textContent = message;
+      el.classList.add("show");
+      toast(message);
+    }
+
+    function clearFormError() {
+      const el = $("#formError");
+      el.textContent = "";
+      el.classList.remove("show");
+    }
+
+    function getCharacterById(id) {
+      return state.characters.find((character) => character.id === id) || null;
+    }
+
+    function getCurrentLetter() {
+      return state.letters.find((letter) => letter.id === state.currentLetterId) || null;
+    }
+
+    function getDisplayName(character) {
+      return character?.displayName || character?.name || "이름 없는 심";
+    }
+
+    function getAccentColor(character) {
+      const color = character?.accentColor || "#d8a6a0";
+      return /^#[0-9a-f]{6}$/i.test(color) ? color : "#d8a6a0";
+    }
+
+    function getSignatureEmoji(character) {
+      return (character?.signatureEmoji || "").trim().slice(0, 4);
+    }
+
+    function getUserCallName() {
+      const profile = state.userProfile || defaultState.userProfile;
+      return profile.callName || profile.displayName || "쥬니";
+    }
+
+    function getPrimaryImage(character) {
+      if (!character?.images?.length) return null;
+      return character.images.find((image) => image.id && image.id === character.primaryImageId) || character.images[0];
+    }
+
+    function getRandomImage(character) {
+      if (!character?.images?.length) return null;
+      return sample(character.images);
+    }
+
+    function weightedThemePool(character, category) {
+      const categoryName = normalizeCategoryName(category);
+      const text = writerText(character);
+      const base = ["cream", "floral", "vintage", "diary", "check", "postcard", "doodle", "luxury", "moon"];
+      const map = {
+        "아침 인사": ["cream", "floral", "check", "postcard"],
+        "밤 인사": ["moon", "vintage", "cream", "luxury"],
+        "응원": ["floral", "cream", "check", "diary"],
+        "다정한 말": ["cream", "floral", "postcard", "moon"],
+        "일상 대화": ["diary", "check", "vintage", "cream"],
+        "개그": ["doodle", "check", "postcard", "diary"],
+        "캐릭터 전용": ["cream", "diary", "postcard", "floral", "vintage"]
+      };
+      const pool = [...(map[categoryName] || base), ...(map[categoryName] || base)];
+      if (/사진|스샷|카메라|예술|감성|다온/.test(text)) pool.push("postcard", "floral", "diary");
+      if (/커피|업무|현실|계획|휘건|차분/.test(text)) pool.push("vintage", "diary", "check");
+      if (/자연|농장|식물|동물|양|포피|세이지/.test(text)) pool.push("floral", "check", "vintage");
+      if (/귀족|왕실|품위|코델리아|골드/.test(text)) pool.push("luxury", "vintage", "moon");
+      pool.push(sample(base));
+      return pool;
+    }
+
+    function chooseLetterTheme(character, category) {
+      const id = sample(weightedThemePool(character, category));
+      return letterThemes[id] ? id : "cream";
+    }
+
+    function chooseStampEmoji(character, themeId) {
+      const signature = getSignatureEmoji(character);
+      const theme = letterThemes[themeId] || letterThemes.cream;
+      const pool = [...theme.stamps, "🌷", "🍀", "🌙", "☕", "📷", "🦋", "🐑", "📚", "✨"];
+      const candidates = pool.filter((emoji) => emoji && emoji !== signature);
+      return sample(candidates.length ? candidates : pool);
+    }
+
+    function chooseDoodleEmoji(stampEmoji) {
+      const pool = ["", "", "", "✨", "·", "⌁", "✦", "♡"];
+      return sample(pool.filter((item) => item !== stampEmoji));
+    }
+
+    function makeTitle(character, category) {
+      const c = normalizeCategoryName(category) === "랜덤" ? sample(categories.slice(1)) : normalizeCategoryName(category);
+      const displayName = getDisplayName(character);
+      const emoji = getSignatureEmoji(character);
+      const prefix = emoji ? `${emoji} ` : "";
+      const titleMap = {
+        "아침 인사": [`${displayName}의 아침 편지`, `${displayName}의 아침 안부`, `${displayName}의 작은 안부`],
+        "밤 인사": [`${displayName}의 편지`, `${displayName}이 남기는 밤 인사`, `${displayName}의 조용한 안부`],
+        "응원": [`${displayName}이 전하는 말`, `${displayName}의 작은 응원`, `${displayName}에게서 온 편지`],
+        "다정한 말": [`${displayName}의 편지`, `${displayName}의 작은 안부`, `${displayName}이 전하고 싶은 말`],
+        "일상 대화": [`오늘의 ${displayName}`, `${displayName}의 사소한 이야기`, `${displayName}의 편지`],
+        "개그": [`${displayName}의 가벼운 편지`, `${displayName}의 장난스러운 안부`, `오늘의 ${displayName}`],
+        "캐릭터 전용": [`${displayName}의 작은 안부`, `${displayName}의 편지`, `${displayName}이 전하는 말`]
+      };
+      return `${prefix}${sample(titleMap[c] || titleMap["다정한 말"])}`;
+    }
+
+    function lineByCategory(category) {
+      const pool = {
+        "아침 인사": [
+          "아침은 완벽하지 않아도 시작된다는 것만으로 충분해.",
+          "오늘 첫 물 한 잔은 꼭 마셔. 사소하지만 몸이 먼저 안심하거든.",
+          "창문을 조금 열고 숨을 길게 쉬어봐. 하루가 아주 작게 부드러워질 거야."
+        ],
+        "밤 인사": [
+          "오늘 미처 끝내지 못한 일은 책상 위에 잠시 내려놓자.",
+          "밤에는 대단한 다짐보다 따뜻한 이불 쪽에 마음을 기대도 돼.",
+          "네가 오늘 버틴 일들은 조용해서 그렇지 사라진 게 아니야."
+        ],
+        "응원": [
+          "지금 속도가 느리다고 방향까지 틀린 건 아니야.",
+          "오늘 할 수 있는 만큼만 해도 돼. 작은 모양으로도 충분히 앞으로 가고 있어.",
+          "너무 애쓰지 않아도 괜찮은 날이 있어."
+        ],
+        "다정한 말": [
+          "괜찮은 하루는 대단한 사건보다 마음이 덜 다치는 쪽에 가까울 때가 많아.",
+          "아무 일 없는 하루도 생각보다 괜찮더라.",
+          "마음이 어린 날에도 네 좋은 취향은 사라지지 않아."
+        ],
+        "일상 대화": [
+          "방금 예쁜 색을 봤는데 괜히 네 생각이 났어.",
+          "오늘 동네는 별일 없었어. 그래서 네 안부가 더 궁금해졌지.",
+          "보여주기 위한 하루가 아니라, 네가 편히 눌러앉을 수 있는 하루였으면 좋겠다."
+        ],
+        "개그": [
+          "오늘 계획은 완벽했어. 실행만 빼고. 그래도 계획은 멋있었지.",
+          "혹시 오늘 일이 꼬이면 일단 간식부터 먹자. 해결책은 아니지만 분위기는 좋아져.",
+          "인생은 가끔 로딩이 길어. 그래도 저장은 자주 해야 해."
+        ],
+        "캐릭터 전용": [
+          "이 편지는 그냥 보내고 싶었어. 이유가 꼭 있어야 하는 건 아니잖아.",
+          "좋아하는 것들 사이에 네 안부를 살짝 끼워 넣어도 어색하지 않더라.",
+          "별일 없는 순간에 떠오르는 사람이 있다는 건 생각보다 큰일이야."
+        ]
+      };
+      const normalized = normalizeCategoryName(category);
+      const actual = normalized === "랜덤" ? sample(Object.keys(pool)) : normalized;
+      return sample(pool[actual] || pool["다정한 말"]);
+    }
+
+    function mbtiLine(character) {
+      const mbti = String(character.mbti || "").trim().toUpperCase();
+      if (!/^[IE][NS][FT][JP]$/.test(mbti)) return "";
+      const lines = [];
+      if (mbti[0] === "I") lines.push("혼자 숨을 고르는 시간이 있어야 다시 다정해지는 날도 있지.");
+      if (mbti[0] === "E") lines.push("누군가와 짧게 웃고 나면 하루가 조금 살아나는 순간도 있더라.");
+      if (mbti[1] === "N") lines.push("가끔은 눈앞의 일보다 그 너머의 가능성이 먼저 보일 때가 있어.");
+      if (mbti[1] === "S") lines.push("손에 잡히는 작은 일부터 챙기면 마음도 천천히 따라오곤 해.");
+      if (mbti[2] === "F") lines.push("결과보다 마음이 먼저 움직이는 날에는, 그 마음도 너무 밀어내지 않았으면 해.");
+      if (mbti[2] === "T") lines.push("감정이 복잡한 날엔 사실부터 하나씩 세어보는 것도 도움이 돼.");
+      if (mbti[3] === "J") lines.push("작은 순서 하나가 하루를 덜 흔들리게 해줄 때가 있어.");
+      if (mbti[3] === "P") lines.push("계획이 조금 바뀌어도 괜찮아. 의외의 길에서 숨이 트일 때도 있으니까.");
+      return sample(lines);
+    }
+
+    function preferenceLine(character) {
+      const lines = [];
+      if (character.likes.length) {
+        const like = sample(character.likes);
+        lines.push(`${like} 생각이 살짝 났어. 그런 작은 취향 하나가 하루를 붙잡아줄 때가 있거든.`);
+        lines.push(`오늘 네 주변에도 ${like}처럼 마음이 조금 밝아지는 게 하나쯤 있었으면 해.`);
+      }
+      if (character.dislikes.length) {
+        lines.push("마음을 시끄럽게 만드는 것들은 오늘 조금 멀리 두자. 가까이 두기엔 네 하루가 아깝잖아.");
+        lines.push("불편한 것까지 오래 붙잡고 있지 않아도 돼. 내려놓는 쪽이 더 용감할 때가 있어.");
+      }
+      return lines.length ? sample(lines) : "";
+    }
+
+    function personalityLine(character) {
+      const text = `${(character.personality || []).join(",")} ${character.description || ""}`.replace(/\s/g, "");
+      const lines = [];
+      if (/생각|고민|섬세|예민/.test(text)) lines.push("말로 다 정리되지 않는 마음도 있지. 그래도 오늘의 네 마음은 대충 지나쳐도 되는 게 아니야.");
+      if (/다정|상냥|배려/.test(text)) lines.push("다정함은 꼭 큰 말이 아니어도 남더라. 문득 떠올려주는 것만으로도 충분할 때가 있어.");
+      if (/서툴|무뚝뚝|표현/.test(text)) lines.push("잘 표현하지 못한 마음도 사라지는 건 아니야. 늦게 도착하는 진심도 있으니까.");
+      if (/장난|활발|유쾌/.test(text)) lines.push("괜히 웃기는 말 하나가 하루를 건져 올릴 때가 있잖아. 오늘도 그런 틈이 있었으면 좋겠다.");
+      if (/소심|불안|조심/.test(text)) lines.push("조심스럽게 걷는 사람만 볼 수 있는 것들이 있어. 느린 발걸음도 나쁘지 않아.");
+      if (/감성|낭만|눈물/.test(text)) lines.push("아무렇지 않은 장면에 마음이 걸리는 날이 있어. 그런 마음을 너무 부끄러워하지 않았으면 해.");
+      return lines.length ? sample(lines) : "";
+    }
+
+    function lineByTone(character) {
+      const map = {
+        "다정함": [
+          "너무 몰아붙이지 말고, 오늘은 마음의 가장자리부터 천천히 안아줘.",
+          "무리하지 않아도 괜찮은 하루가 분명히 있어."
+        ],
+        "장난기": [
+          "물론 이렇게 진지한 말을 했다는 건 비밀이야. 평판은 지켜야 하거든.",
+          "일이 꼬이면 간식부터 먹자. 해결책은 아니어도 분위기는 꽤 중요하니까."
+        ],
+        "차분함": [
+          "급히 결론 내리지 않아도 괜찮아. 조용히 바라보면 정리되는 마음도 있으니까.",
+          "오늘은 한 번에 하나씩만 해보자. 단순한 순서가 생각보다 많이 구해줘."
+        ],
+        "현실조언형": [
+          "우선 물을 마시고, 해야 할 일을 딱 하나만 적어봐. 마음은 행동 뒤에 따라올 때가 많아.",
+          "에너지가 적다면 먹고, 씻고, 충전하는 기본값부터 회복하자."
+        ],
+        "귀족형": [
+          "품위를 깎아가며 서두를 필요는 없어. 찻잔 하나의 여유쯤은 허락해도 된단다.",
+          "사소한 불안에 왕관을 기울일 필요는 없어. 네 속도로 우아하게 가면 돼."
+        ],
+        "츤데레": [
+          "딱히 걱정돼서 쓰는 건 아니야. 그냥 또 무리할까 봐 확인 정도는 하는 거지.",
+          "응원한다고 크게 말하긴 좀 그렇지만, 모르는 척하지는 말아줘."
+        ],
+        "활발함": [
+          "오늘 하나만 반짝하게 해보자. 아주 작은 성공도 박수치면 꽤 좋아진다니까!",
+          "기운이 없으면 없는 대로 출발! 작은 출발도 출발이야."
+        ],
+        "감성적": [
+          "가끔 마음은 오래된 편지 같아서, 접힌 자국까지 다정하게 읽어줘야 하더라.",
+          "네 안에 남은 빛이 작아 보여도, 작은 빛은 어두운 곳에서 더 또렷해져."
+        ]
+      };
+      return sample(map[character.tone] || map["다정함"]);
+    }
+
+    function makePersonalLine(character) {
+      const lines = [
+        preferenceLine(character),
+        mbtiLine(character),
+        personalityLine(character)
+      ].filter(Boolean);
+      if (character.job) {
+        lines.push(sample([
+          "하루를 버티는 기술은 생각보다 사소한 데서 오더라. 물 한 잔, 잠깐의 정리, 그런 것들.",
+          "해야 할 일이 많은 날일수록 쉬는 순간을 일부러 끼워 넣어야 오래 갈 수 있어.",
+          "작은 일 하나를 제대로 끝내는 것만으로도 하루의 모양이 조금 달라져."
+        ]));
+      }
+      if (character.description && lines.length < 2) {
+        lines.push("네 안부가 문득 궁금했어. 이유를 붙이자면 많겠지만, 사실 그냥 떠올랐다는 쪽이 더 맞아.");
+      }
+      return lines.length ? sample(lines) : "네 이름이 문득 떠올라서, 그냥 다정한 말을 하나 보내고 싶었어.";
+    }
+
+    function writerText(character) {
+      return [
+        character.job,
+        character.mbti,
+        character.tone,
+        ...(character.likes || []),
+        ...(character.dislikes || []),
+        ...(character.personality || []),
+        character.description
+      ].join(" ").replace(/\s/g, "");
+    }
+
+    function endingKey(line) {
+      const text = String(line || "").trim().replace(/[.!?。？！…]+$/g, "");
+      const patterns = ["했어", "났어", "더라", "좋았어", "같아", "믿어", "괜찮아", "잖아", "거야", "해", "까"];
+      return patterns.find((ending) => text.endsWith(ending)) || text.slice(-2);
+    }
+
+    function pickLine(pool, usedEndings) {
+      const candidates = pool.filter((line) => !usedEndings.has(endingKey(line)));
+      const line = sample(candidates.length ? candidates : pool);
+      usedEndings.add(endingKey(line));
+      return line;
+    }
+
+    function makeOccasionPool(character, category) {
+      category = normalizeCategoryName(category);
+      const text = writerText(character);
+      const pool = [
+        "방금 차를 마시다가 네 생각이 났어.",
+        "오늘 하늘이 유난히 맑더라.",
+        "책상 위를 조금 치우다가 편지를 쓰고 싶어졌어.",
+        "창문을 열어뒀는데 바람이 꽤 부드러웠어.",
+        "별일은 없었는데, 이상하게 네 안부가 궁금해졌어."
+      ];
+      if (category === "아침 인사") pool.unshift("아침빛이 생각보다 일찍 들어와서 잠깐 멈춰 서 있었어.");
+      if (category === "밤 인사") pool.unshift("밤이 조용해지니까 낮에 못 했던 말이 떠올랐어.");
+      if (category === "응원") pool.unshift("오늘 네가 조금 지쳐 있을지도 모르겠다는 생각이 들었어.");
+      if (category === "다정한 말") pool.unshift("괜히 부드러운 말을 하나 남겨두고 싶은 날이었어.");
+      if (category === "일상 대화") pool.unshift("별일 없는 하루였는데, 그래서 더 편지를 쓰고 싶어졌어.");
+      if (/사진|카메라/.test(text)) pool.push("오늘 하늘이 예뻤는데, 사진으로는 그 색이 잘 안 담기더라.");
+      if (/농장|정원|식물|자연|흙/.test(text)) pool.push("아침에 흙 냄새가 꽤 좋았어. 괜히 하루가 천천히 시작되는 기분.");
+      if (/커피|카페|차|라떼/.test(text)) pool.push("커피가 식기 전에 잠깐 네 생각이 났어.");
+      if (/음악|기타|피아노|노래/.test(text)) pool.push("방금 들은 노래의 한 구절이 이상하게 오래 남았어.");
+      if (/작가|글|책|시/.test(text)) pool.push("읽던 문장을 덮어두고 한참 가만히 있었어.");
+      if (/요리|베이킹|음식/.test(text)) pool.push("따뜻한 냄새가 나는 걸 보고 누군가와 나누면 좋겠다는 생각이 들었어.");
+      if (/동물|고양이|강아지|반려/.test(text)) pool.push("작은 발소리가 지나가듯 조용한 순간이 있었어.");
+      return pool;
+    }
+
+    function makeSmallStoryPool(character) {
+      const text = writerText(character);
+      const pool = [
+        "별건 아니지만 그런 순간이 있잖아.",
+        "아무 일도 아닌데 마음이 잠깐 멈추는 순간.",
+        "그냥 지나가도 되는 장면인데, 이상하게 오래 남았어.",
+        "말로 설명하면 작아지는데, 그때는 꽤 선명했어.",
+        "이런 사소한 걸 적어 보내는 게 조금 우습기도 하네."
+      ];
+      if (/낭만|영혼|동반자|사랑|연애|금사빠/.test(text)) {
+        pool.push("좋은 인연은 생각보다 천천히 오는 거라고 믿어.");
+        pool.push("오래 보고 싶은 사람이 있다는 건 꽤 괜찮은 일이야.");
+        pool.push("마음이 앞서가는 날에도 잠깐 숨을 고르면 괜찮아.");
+      }
+      if (/완벽|꼼꼼|계획/.test(text)) {
+        pool.push("다 끝내지 못해도 오늘 몫의 마침표는 찍을 수 있더라.");
+        pool.push("순서대로 되지 않는 날에도, 하나쯤은 제자리를 찾게 돼.");
+      }
+      if (/야심|성공|부자|명성|스타/.test(text)) {
+        pool.push("큰일은 대체로 작은 행동 하나가 조용히 쌓인 뒤에야 모습을 보여줘.");
+        pool.push("반짝이는 결과보다 오래 버틸 수 있는 리듬이 먼저일 때가 있어.");
+      }
+      if (/생각|고민|섬세|예민|IN|NF/.test(text)) {
+        pool.push("가끔은 결과보다 마음이 먼저 움직일 때도 있잖아.");
+        pool.push("머릿속이 너무 시끄러운 날엔 조용한 장면 하나가 의외로 도움이 돼.");
+      }
+      if (/장난|활발|유쾌|EN|EP/.test(text)) {
+        pool.push("사소한 농담 하나가 하루를 건져 올리는 날도 있지.");
+        pool.push("웃음이 먼저 나오면 이유는 나중에 붙여도 되니까.");
+      }
+      return pool;
+    }
+
+    function makeCheckInPool() {
+      const profile = state.userProfile || defaultState.userProfile;
+      const record = getRecentDailyRecord();
+      const callName = getUserCallName();
+      const pool = [
+        `${callName}, 오늘 하루는 어땠어?`,
+        `밥은 챙겨 먹었어, ${callName}?`,
+        `${callName}, 오늘은 마음이 너무 소란스럽지 않았으면 좋겠다.`,
+        `지금 어디쯤 앉아 있는지, 잠깐 상상해봤어.`,
+        `오늘 네가 제일 오래 붙잡고 있던 생각은 뭐였을까.`
+      ];
+      const moodMap = {
+        "신남": [
+          "들뜬 마음은 너무 빨리 정리하지 않아도 돼. 조금 더 가지고 있어도 좋잖아.",
+          `${callName}, 좋은 기분이 있다면 오늘은 그걸 오래 아껴둬.`
+        ],
+        "보통": [
+          "평범한 날도 나중에 보면 이상하게 선명한 부분이 있더라.",
+          `${callName}, 아무 일 없는 하루였어도 네가 지나온 시간은 남아 있어.`
+        ],
+        "지침": [
+          "많이 해내는 것보다 덜 닳는 쪽을 골라도 되는 날이야.",
+          `${callName}, 오늘은 잠깐 멈춰도 괜찮아. 정말로.`
+        ],
+        "우울": [
+          "마음이 낮게 가라앉은 날에는 결론을 조금 미뤄두자.",
+          `${callName}, 오늘은 밝아지려고 애쓰지 않아도 돼. 곁에 있는 것부터 하자.`
+        ],
+        "설렘": [
+          "기대하는 마음은 조심스럽게 있어도 충분히 예뻐.",
+          `${callName}, 좋은 예감이 너무 멀리 달아나지 않게 천천히 데리고 있어.`
+        ]
+      };
+      pool.push(...(moodMap[record?.mood || profile.mood] || []));
+      return pool;
+    }
+
+    function getTodayRecord() {
+      return normalizeDailyRecord(state.dailyRecords?.[todayRecordKey()] || {}, todayRecordKey());
+    }
+
+    function getRecentDailyRecord() {
+      const todayDate = new Date(todayRecordKey());
+      const records = Object.values(state.dailyRecords || {})
+        .map((record) => normalizeDailyRecord(record, record.date))
+        .filter((record) => record.activities || record.memory || record.mood)
+        .sort((a, b) => String(b.date).localeCompare(String(a.date)));
+      const today = records.find((record) => record.date === todayRecordKey() && (record.activities || record.memory));
+      if (today) return today;
+      return records.find((record) => {
+        const date = new Date(record.date);
+        const diffDays = (todayDate - date) / 86400000;
+        return diffDays > 0 && diffDays <= 3 && (record.activities || record.memory);
+      }) || null;
+    }
+
+    function makeRecordReflectionPool(character) {
+      const record = getRecentDailyRecord();
+      if (!record) return [];
+      const text = `${record.memory || record.activities}`.replace(/\s/g, "");
+      const writer = writerText(character);
+      const pool = [
+        "오늘 뭔가 적어둔 거 봤어. 생각보다 생활감 있더라.",
+        "네 기록 보다가 잠깐 멈췄어. 별 이유는 없고.",
+        "그거 보고 혼자 고개 끄덕였어.",
+        "그 얘기 보니까 갑자기 딴생각이 났어."
+      ];
+
+      if (/노션|정리|링크|폴더|목록|체크/.test(text)) {
+        pool.push("정리할 게 많았나 보네. 그런 건 시작하면 이상하게 끝이 안 보여.");
+        pool.push("목록 같은 거 보다 보면 갑자기 다른 목록도 만들고 싶어지지 않아?");
+      }
+      if (/CC|커스텀|모드|링크/.test(text)) {
+        pool.push("링크 모아두는 일은 분명 정리인데, 가끔 보물찾기처럼 보여.");
+      }
+      if (/포피|양|농장|동물/.test(text)) {
+        pool.push("오늘도 양들이 말썽은 안 부렸어? 괜히 궁금해지네.");
+        pool.push("양은 가만히 있어도 뭔가 할 말이 있어 보이는 얼굴이야.");
+      }
+      if (/다온|스샷|스크린샷|사진|캡처/.test(text) || /사진|카메라/.test(writer)) {
+        pool.push("사진 찍다 보면 꼭 찍고 나서야 더 좋은 구도가 생각나더라.");
+        pool.push("스샷은 묘해. 분명 멈춘 장면인데 혼자 계속 말하는 것 같아.");
+      }
+      if (/플레이|심즈|게임/.test(text)) {
+        pool.push("게임하다 보면 시간 감각이 살짝 옆으로 새지 않아?");
+      }
+      if (/아이|가족|저녁|밥|식사/.test(text)) {
+        pool.push("밥 얘기 보니까 나도 갑자기 뭐 먹고 싶어졌어.");
+      }
+      if (/코덱스|앱|만들|완성|개발|수정/.test(text)) {
+        pool.push("뭔가 만들고 있었다는 말은 늘 약간 어질어질하고 재밌어.");
+        pool.push("수정하다 보면 고친 데 옆이 갑자기 신경 쓰이지. 왜 그러는 걸까.");
+      }
+      if (/피곤|지침|힘듦|졸림/.test(record.mood + text)) {
+        pool.push("피곤한 날엔 글자도 좀 무거워 보이더라.");
+      }
+      if (/좋음|신남|기쁨|웃/.test(record.mood + text)) {
+        pool.push("기분 좋았다는 말은 짧아도 티가 나서 신기해.");
+      }
+      return pool;
+    }
+
+    function makeClosingPool(character, category) {
+      category = normalizeCategoryName(category);
+      const map = {
+        "다정함": [
+          "답장은 없어도 괜찮아. 그냥 안부가 전하고 싶었어.",
+          "오늘 밤엔 마음이 조금 덜 무거웠으면 해."
+        ],
+        "장난기": [
+          "답장은 선택 사항이야. 물론 오면 꽤 기뻐할 예정.",
+          "그럼 이 편지는 살짝 남겨두고 도망갈게."
+        ],
+        "차분함": [
+          "천천히 읽고, 천천히 쉬어.",
+          "오늘은 여기까지 적을게. 남은 시간은 조금 조용하길."
+        ],
+        "현실조언형": [
+          "일단 물 한 잔 마시고, 다음 일은 그다음에 생각하자.",
+          "오늘 할 일은 하나만 줄여도 괜찮아. 남은 건 내일의 몫으로 두자."
+        ],
+        "귀족형": [
+          "그럼 이만 줄일게. 부디 너의 저녁이 무례한 소란 없이 지나가길.",
+          "답장은 천천히 해도 좋단다. 품위 있는 안부는 서두르지 않는 법이니까."
+        ],
+        "츤데레": [
+          "답장하라는 뜻은 아니야. 그래도 오면 읽기는 할게.",
+          "괜히 무리하지 마. 그냥 하는 말이니까 너무 의미 두진 말고."
+        ],
+        "활발함": [
+          "오늘도 작은 승리 하나쯤은 챙기자. 없으면 만들어도 되고!",
+          "그럼 힘은 조금만 쓰고, 간식은 제때 챙기기. 약속."
+        ],
+        "감성적": [
+          "답장은 없어도 괜찮아. 이 마음이 닿는 것만으로 충분해.",
+          "오늘의 끝에 작은 불빛 하나가 남아 있기를."
+        ]
+      };
+      const pool = [...(map[character.tone] || map["다정함"])];
+      if (category === "아침 인사") pool.push("오늘의 시작이 너무 거칠지 않았으면 해.");
+      if (category === "밤 인사") pool.push("이제 남은 건 잠깐 내려놓고, 따뜻하게 쉬자.");
+      if (category === "응원") pool.push("멀리 가지 않아도 돼. 오늘은 한 걸음이면 충분해.");
+      if (category === "다정한 말") pool.push("별말 아니어도, 이런 한마디가 네 곁에 잠깐 머물렀으면 해.");
+      if (category === "개그") pool.push("이 편지는 진지한 척하지만 사실 간식 권유문일지도 몰라.");
+      return pool;
+    }
+
+    function composeLetterBody(character, category) {
+      const usedEndings = new Set();
+      const opener = ({
+        "귀족형": "안녕하신가, 쥬니.",
+        "츤데레": "안녕, 쥬니. 뭐, 그냥 안부 편지야.",
+        "활발함": "안녕, 쥬니!",
+        "감성적": "안녕, 쥬니.",
+        "현실조언형": "안녕, 쥬니. 짧게 적어볼게.",
+        "차분함": "안녕, 쥬니. 잠깐 앉아서 읽어줘.",
+        "장난기": "안녕, 쥬니. 이제 내 차례지.",
+        "다정함": "안녕, 쥬니."
+      }[character.tone] || "안녕, 쥬니.").replaceAll("쥬니", getUserCallName());
+      usedEndings.add(endingKey(opener));
+
+      const occasion = pickLine(makeOccasionPool(character, category), usedEndings);
+      const recordPool = makeRecordReflectionPool(character);
+      const story = pickLine(recordPool.length ? recordPool : makeSmallStoryPool(character), usedEndings);
+      const checkIn = pickLine(makeCheckInPool(), usedEndings);
+      const closing = pickLine(makeClosingPool(character, category), usedEndings);
+
+      return [opener, occasion, story, checkIn, closing].join("\n\n");
+    }
+
+    function lineByUserProfile() {
+      const profile = state.userProfile || defaultState.userProfile;
+      const callName = getUserCallName();
+      const lines = [];
+      const moodLines = {
+        "신남": `${callName}, 오늘 마음이 들떠 있다면 그 기분을 너무 빨리 정리하지 말고 조금 더 즐겨도 좋아.`,
+        "보통": `${callName}, 아무 일 없어 보이는 하루에도 네가 지나온 작은 수고가 분명히 있어.`,
+        "지침": `${callName}, 오늘은 많이 해내는 것보다 덜 소모되는 쪽을 골라도 괜찮아.`,
+        "우울": `${callName}, 마음이 작게 가라앉은 날에는 결론을 내리지 말고 곁에 있어주는 것부터 하자.`,
+        "설렘": `${callName}, 기대하는 마음은 조심스럽게 있어도 충분히 예쁜 에너지야.`
+      };
+      if (moodLines[profile.mood]) lines.push(moodLines[profile.mood]);
+      return lines.length ? sample(lines) : "";
+    }
+
+    const commonLetterTopics = [
+      "하늘", "창문", "커피", "차", "산책", "책", "음악", "고양이", "꽃", "비",
+      "바람", "노을", "정리", "작은 실수", "기다림", "쉬는 시간", "간식", "사진",
+      "낯선 사람", "조용한 오후", "늦은 밤", "아침 공기"
+    ];
+
+    function lineFingerprint(line) {
+      return String(line || "")
+        .replace(/[^\p{L}\p{N}\s]/gu, "")
+        .replace(/\s+/g, "")
+        .toLowerCase();
+    }
+
+    function lineSimilarity(a, b) {
+      const fa = lineFingerprint(a);
+      const fb = lineFingerprint(b);
+      if (!fa || !fb) return 0;
+      if (fa === fb) return 1;
+      const grams = (text) => {
+        const set = new Set();
+        for (let i = 0; i < Math.max(1, text.length - 2); i += 1) set.add(text.slice(i, i + 3));
+        return set;
+      };
+      const aSet = grams(fa);
+      const bSet = grams(fb);
+      const intersection = [...aSet].filter((gram) => bSet.has(gram)).length;
+      const union = new Set([...aSet, ...bSet]).size || 1;
+      return intersection / union;
+    }
+
+    function recentGenerationMemory(characterId = "") {
+      return normalizeGenerationMemory(state.generationMemory).filter((item) => !characterId || item.characterId === characterId);
+    }
+
+    function isRecentlyUsedLine(line, role, characterId) {
+      const recent = normalizeGenerationMemory(state.generationMemory).slice(0, 30);
+      return recent.some((item) => {
+        const roleMatch = role && item[role] && lineSimilarity(line, item[role]) > 0.72;
+        const lineMatch = (item.lines || []).some((used) => lineSimilarity(line, used) > 0.78);
+        const sameCharacterBoost = item.characterId === characterId && (roleMatch || lineMatch);
+        return sameCharacterBoost || roleMatch || lineMatch;
+      });
+    }
+
+    function pickFreshLine(pool, role, characterId, usedEndings) {
+      const uniquePool = [...new Set(pool.filter(Boolean))];
+      let candidates = uniquePool
+        .filter((line) => !isRecentlyUsedLine(line, role, characterId))
+        .filter((line) => !usedEndings.has(endingKey(line)));
+      if (!candidates.length) candidates = uniquePool.filter((line) => !usedEndings.has(endingKey(line)));
+      if (!candidates.length) candidates = uniquePool;
+      const line = sample(candidates);
+      usedEndings.add(endingKey(line));
+      return line;
+    }
+
+    function characterLens(character) {
+      const text = writerText(character);
+      const tone = character.tone || "";
+      const lens = {
+        soft: /다정|감성|낭만|배려|상냥|가족|사랑/.test(text + tone),
+        playful: /장난|활발|유쾌|괴짜|개그/.test(text + tone),
+        practical: /현실|완벽|계획|업무|직장|야심|성공|꼼꼼/.test(text + tone),
+        noble: /귀족|품위|왕|코델리아/.test(text + tone),
+        curious: /호기심|사진|작가|예술|창작|관찰|스샷/.test(text + tone),
+        quiet: /차분|소심|생각|고민|내향|조용/.test(text + tone),
+        nature: /자연|농장|정원|식물|동물|흙|양/.test(text + tone),
+        awkwardKind: /츤데레|무뚝뚝|서툴|표현/.test(text + tone)
+      };
+      if (!Object.values(lens).some(Boolean)) lens.soft = true;
+      return lens;
+    }
+
+    function topicFromRecord() {
+      const record = getRecentDailyRecord();
+      if (!record) return "";
+      const text = `${record.memory || record.activities}`.replace(/\s/g, "");
+      if (/스샷|스크린샷|사진|캡처/.test(text)) return "사진";
+      if (/노션|정리|링크|폴더|목록|체크/.test(text)) return "정리";
+      if (/커피|카페|차/.test(text)) return /차/.test(text) ? "차" : "커피";
+      if (/책|독서|문장/.test(text)) return "책";
+      if (/음악|노래|플리|기타|피아노/.test(text)) return "음악";
+      if (/고양이|강아지|동물|양|포피/.test(text)) return /고양이/.test(text) ? "고양이" : "산책";
+      if (/비|우산/.test(text)) return "비";
+      if (/저녁|밥|간식|디저트/.test(text)) return "간식";
+      return "";
+    }
+
+    function pickTopic(character, category) {
+      const memory = normalizeGenerationMemory(state.generationMemory);
+      const recentTopics = new Set(memory.slice(0, 6).map((item) => item.topic).filter(Boolean));
+      const characterRecentTopics = new Set(memory.filter((item) => item.characterId === character.id).slice(0, 8).map((item) => item.topic).filter(Boolean));
+      const recordTopic = topicFromRecord();
+      const weighted = [...commonLetterTopics];
+      if (recordTopic) weighted.unshift(recordTopic, recordTopic);
+      if (normalizeCategoryName(category) === "아침 인사") weighted.unshift("아침 공기", "창문", "차");
+      if (normalizeCategoryName(category) === "밤 인사") weighted.unshift("늦은 밤", "책", "창문");
+      if (normalizeCategoryName(category) === "개그") weighted.unshift("작은 실수", "간식", "낯선 사람");
+      const candidates = weighted.filter((topic) => !recentTopics.has(topic) && !characterRecentTopics.has(topic));
+      return sample(candidates.length ? candidates : weighted);
+    }
+
+    function topicScenePool(topic) {
+      const scenes = {
+        "하늘": ["하늘이 평소보다 조금 넓어 보였어.", "구름 모양이 자꾸 바뀌어서 한참 올려다봤어.", "파란색이 오늘은 유난히 얌전하더라."],
+        "창문": ["창문을 조금 열어뒀는데 바깥 소리가 얇게 들어왔어.", "유리창에 비친 방이 낯설게 조용했어.", "커튼이 살짝 움직이는 걸 보고 괜히 멈춰 섰어."],
+        "커피": ["커피가 식기 전에 잠깐 생각이 멈췄어.", "컵 가장자리에 남은 향이 생각보다 오래 갔어.", "쓴맛이 먼저 오고 나중에 단맛이 따라오더라."],
+        "차": ["따뜻한 차를 한 모금 마시고 한참 가만히 있었어.", "찻잔에서 올라오는 김이 작게 흔들렸어.", "향이 너무 크지 않아서 오히려 오래 남았어."],
+        "산책": ["걷다가 발걸음이 괜히 느려지는 구간이 있었어.", "길가의 작은 소리들이 평소보다 잘 들렸어.", "멀리 가지 않았는데도 조금 다른 곳에 다녀온 기분이야."],
+        "책": ["읽던 문장을 덮어두고 잠깐 생각했어.", "책갈피가 꽂힌 자리만 이상하게 선명했어.", "문장 하나가 머릿속에서 천천히 돌아다녔어."],
+        "음악": ["방금 들은 노래의 한 구절이 오래 남았어.", "소리가 작았는데도 마음 안쪽까지 들어오더라.", "반복 재생을 누를까 말까 한참 고민했어."],
+        "고양이": ["골목에서 고양이를 봤는데, 왜인지 한참 눈이 가더라.", "사진 찍으려 했는데 금방 사라졌어.", "괜히 이름을 붙여주고 싶은 얼굴이었어."],
+        "꽃": ["작은 꽃이 생각보다 오래 눈에 들어왔어.", "색이 너무 선명해서 잠깐 말이 없어졌어.", "이름은 모르지만 그냥 예뻤어."],
+        "비": ["비가 크게 오진 않았는데 공기가 조금 달라졌어.", "우산 끝에서 떨어지는 물방울을 보고 있었어.", "젖은 길이 이상하게 차분해 보였어."],
+        "바람": ["바람이 지나가는데 방 안 분위기까지 바뀌었어.", "가벼운 소리가 창가에 잠깐 머물렀어.", "머리카락이 흐트러지는 정도의 바람이었어."],
+        "노을": ["노을이 짧게 지나가서 조금 아쉬웠어.", "색이 금방 바뀌는 걸 보고 있으니 말이 줄었어.", "붙잡기엔 너무 빨리 사라지는 빛이었어."],
+        "정리": ["흩어진 걸 조금 치웠더니 공간이 다르게 보였어.", "정리하다가 잊고 있던 작은 것을 발견했어.", "제자리에 둔 물건 하나가 이상하게 든든했어."],
+        "작은 실수": ["별것 아닌 실수를 했는데 혼자 웃음이 나왔어.", "잠깐 민망했지만 금방 지나갔어.", "완벽하지 않은 쪽이 더 기억에 남는 날도 있네."],
+        "기다림": ["기다리는 시간이 생각보다 길게 느껴졌어.", "답이 오기 전의 조용함이 묘하게 남았어.", "가만히 있는 시간이 꼭 비어 있는 건 아니더라."],
+        "쉬는 시간": ["짧게 쉬었는데 그 시간이 제일 선명했어.", "아무것도 안 하는 몇 분이 꽤 필요했나 봐.", "잠깐 멈추니까 주변 소리가 들렸어."],
+        "간식": ["작은 간식을 하나 먹었는데 기분이 조금 풀렸어.", "달달한 게 생각보다 빠르게 마음을 설득하더라.", "별일 아닌 보상이 하루를 살짝 구해줬어."],
+        "사진": ["장면 하나가 오래 남아서 사진으로 잡아두고 싶었어.", "사진은 이상하게 그날의 기분까지 같이 담아버리잖아.", "찍고 나서 보니 실제보다 조금 더 조용해 보였어."],
+        "낯선 사람": ["스쳐 지나간 사람이 괜히 기억에 남았어.", "모르는 사람의 작은 친절을 봤어.", "잠깐 마주친 표정 하나가 오래 남을 때가 있잖아."],
+        "조용한 오후": ["오후가 너무 조용해서 시간이 느리게 가는 줄 알았어.", "빛이 옆으로 길게 누워 있었어.", "별일 없는 오후가 오히려 오래 남았어."],
+        "늦은 밤": ["밤이 깊어지니까 작은 소리까지 크게 들렸어.", "불을 끄기 전의 방이 잠깐 낯설었어.", "늦은 시간엔 마음도 조금 솔직해지는 것 같아."],
+        "아침 공기": ["아침 공기가 생각보다 차분했어.", "하루가 아직 시작되기 전의 조용함이 있었어.", "첫 숨이 조금 가벼운 날이었어."]
+      };
+      return scenes[topic] || scenes["조용한 오후"];
+    }
+
+    function interpretTopicPool(topic, character) {
+      const lens = characterLens(character);
+      const pool = [];
+      if (lens.soft) pool.push("그거 보고 괜히 네가 좋아할지 아닐지 혼자 생각했어.");
+      if (lens.playful) pool.push("대단한 발견인 척하려다가 나 혼자 민망해졌어.");
+      if (lens.practical) pool.push("딱히 쓸모 있는 얘기는 아닌데, 그래서 더 편하게 적는 중이야.");
+      if (lens.noble) pool.push("별것 아닌데도 묘하게 신경 쓰이더군. 설명은 잘 안 된다.");
+      if (lens.curious) pool.push("그냥 지나가도 됐는데 한 번 더 봤어. 왜인지는 모르겠고.");
+      if (lens.quiet) pool.push("말로 꺼내면 더 이상해질 것 같아서 그냥 적어둬.");
+      if (lens.nature) pool.push("가만히 보니까 별생각이 다 나더라. 별생각이라고 해도 정말 별건 아니고.");
+      if (lens.awkwardKind) pool.push("이걸 편지로 쓰는 것도 좀 이상한데, 이미 쓰고 있으니까 됐어.");
+      pool.push(
+        "근데 이름이 기억 안 나.",
+        "생각보다 오래 쳐다봤어. 나도 왜 그랬는지는 몰라.",
+        "말하려고 보니까 더 별일 아닌 얘기네.",
+        "아무튼 그랬어.",
+        "쓰고 보니까 진짜 사소하다."
+      );
+      return pool;
+    }
+
+    function questionPool(topic) {
+      return [
+        "오늘은 뭐 하면서 보냈어?",
+        "지금쯤 뭐 하고 있으려나.",
+        "밥은 챙겨 먹었어?",
+        "너는 오늘 이상한 거 못 봤어?",
+        `${topic} 얘기를 왜 하고 있냐면, 나도 잘 모르겠어.`,
+        "이 얘기 지금 해도 되는 건가.",
+        "아, 갑자기 배고파졌어.",
+        "아무튼 너도 봤으면 웃었을 것 같아.",
+        "아니면 말고."
+      ];
+    }
+
+    function closingPoolByTone(character, category) {
+      const categoryName = normalizeCategoryName(category);
+      const base = [
+        "아무튼 그 얘기였어.",
+        "여기까지 쓰니까 갑자기 할 말이 없어졌어.",
+        "끝을 어떻게 내야 할지 모르겠네. 그냥 끝.",
+        "별 얘기는 아니었어. 그래도 적고 싶었어.",
+        "이상한 편지가 됐지만 보내볼게.",
+        "그럼 이만. 갑자기 너무 편지 같아져서 멈출래.",
+        "아, 그리고 이건 답장 안 해도 돼.",
+        "쓰다 보니 길어질 뻔해서 여기서 끊어.",
+        "나중에 생각나면 또 적을게. 아마도.",
+        "그래서 결론은 없어. 그냥 그랬다는 얘기야."
+      ];
+      const toneMap = {
+        "장난기": ["그럼 나는 이 편지를 두고 멋지게 빠질게. 조금만 멋지게.", "여기서 더 쓰면 내가 웃길 욕심을 낼 것 같아서 멈춤."],
+        "현실조언형": ["이상 보고 끝. 보고서처럼 말했네.", "아무튼 기록 끝. 꽤 짧고 좋다."],
+        "귀족형": ["그럼 이만 줄이겠네. 더 쓰면 괜히 과해질 테니.", "별 대단한 서신은 아니었다. 그 점이 마음에 드는군."],
+        "츤데레": ["뭐, 이 정도면 됐지.", "별뜻은 없어. 진짜로."],
+        "활발함": ["아무튼 이 얘기 하려고 왔어!", "끝! 갑자기 다른 얘기 생각나기 전에 멈출래."],
+        "감성적": ["이상하게 적고 나니까 조금 조용해졌어.", "여기서 멈추는 게 나을 것 같아."],
+        "차분함": ["그냥 그렇게 적어두고 싶었어.", "오늘 편지는 여기까지."],
+        "다정함": ["그냥 네 생각이 났다는 얘기야.", "별말 아닌 안부였어."]
+      };
+      const categoryLines = {
+        "아침 인사": ["아침부터 이런 얘기라니. 아무튼 좋은... 아니, 그냥 아침이야."],
+        "밤 인사": ["밤에 쓰니까 더 별말 아닌 것 같네."],
+        "응원": ["응원이라고 하기엔 좀 작지만, 그래도 보냄."],
+        "다정한 말": ["다정한 말 하려다가 그냥 평범한 말이 됐어."],
+        "개그": [
+          "웃기려고 한 건 아닌데 조금 웃겼으면 내 승리.",
+          "여기서 더 쓰면 농담을 설명하게 될 것 같아서 도망감.",
+          "간식 얘기를 안 하고 끝내다니 꽤 자제했다.",
+          "아무튼 이상한 얘기 끝."
+        ]
+      };
+      return [...base, ...(toneMap[character.tone] || []), ...(categoryLines[categoryName] || [])];
+    }
+
+    function jokeStoryPool(topic, character) {
+      const lens = characterLens(character);
+      const pool = [
+        "작은 간식을 하나 먹었는데, 생각보다 기분이 빨리 풀리더라.",
+        "방금 아주 사소한 실수를 했는데 너무 자연스러워서 거의 계획처럼 보였어.",
+        "해야 할 일을 하나 줄였어. 정확히 말하면 내일의 나에게 정중히 넘겼지.",
+        "잠깐 쉬려고 앉았는데 쉬는 자세만큼은 꽤 전문가 같았어.",
+        "별일 아닌 장면인데 혼자 웃음이 나서 조금 민망했어."
+      ];
+      const topicMap = {
+        "간식": [
+          "간식을 꺼냈는데 봉지가 생각보다 크게 바스락거려서 괜히 들킨 기분이었어.",
+          "달달한 걸 하나 먹었더니 세상이 아주 조금 협조적으로 보이더라."
+        ],
+        "작은 실수": [
+          "별것 아닌 실수를 했는데, 당당하게 굴면 실수가 아니라 연출처럼 보일 수도 있겠더라.",
+          "분명 침착하게 움직였는데 결과만 보면 꽤 새로운 방식의 혼란이었어."
+        ],
+        "고양이": [
+          "고양이를 봤는데 눈빛이 너무 진지해서 내가 먼저 예의를 갖추게 됐어.",
+          "사진 찍으려 했더니 바로 돌아서더라. 거절 의사가 아주 분명했어."
+        ],
+        "커피": [
+          "커피가 식기 전에 마시려고 했는데, 생각보다 커피 쪽이 더 성실했어.",
+          "커피 한 모금 마셨더니 잠깐 어른스러워진 기분이 들었어. 오래가진 않았고."
+        ],
+        "정리": [
+          "정리를 시작했는데 추억보다 먼지가 먼저 인사하더라.",
+          "물건 하나를 제자리에 뒀더니 갑자기 꽤 괜찮은 사람처럼 느껴졌어."
+        ],
+        "사진": [
+          "마음에 드는 장면을 찍으려 했는데, 렌즈 앞에서만 세상이 살짝 장난을 치더라.",
+          "사진은 가끔 이상해. 분명 풍경을 찍었는데 내 기분까지 같이 찍혀."
+        ]
+      };
+      if (topicMap[topic]) pool.unshift(...topicMap[topic]);
+      if (lens.noble) pool.unshift("오늘의 중요한 업무는 잠시 중단했어. 사유는 간식이 식기 전에 처리해야 했기 때문이다.");
+      if (lens.practical) pool.unshift("할 일을 미뤘다는 표현은 조금 가혹해. 미래의 나에게 위임했다고 해두자.");
+      if (lens.playful) pool.unshift("웃긴 얘기를 하려고 했는데, 준비한 표정이 먼저 웃겨져 버렸어.");
+      if (lens.nature) pool.unshift("작은 생명체랑 눈이 마주쳤는데, 왠지 내가 먼저 졌다는 기분이 들었어.");
+      if (lens.awkwardKind) pool.unshift("농담 하나 하려다가 너무 진지하게 생각해서 농담이 퇴근해 버렸어.");
+      return pool;
+    }
+
+    function jokeClosingPool(character) {
+      const lens = characterLens(character);
+      const pool = [
+        "오늘 웃을 일이 하나쯤은 슬쩍 굴러왔으면 좋겠다.",
+        "안 웃겨도 괜찮아. 이 편지는 웃긴 척하는 안부니까.",
+        "답장은 없어도 돼. 대신 물 한 잔 마시면 꽤 훌륭한 반응으로 인정할게.",
+        "오늘의 작은 승리는 여기까지. 나머지는 간식에게 맡기자.",
+        "그럼 이만 줄일게. 너무 멋있게 끝내면 부담스러우니까."
+      ];
+      if (lens.noble) pool.unshift("부디 너의 하루에 품위 있는 간식 시간이 허락되길.");
+      if (lens.practical) pool.unshift("오늘 할 일 하나쯤 줄여도 돼. 문서상으로는 휴식이라고 쓰자.");
+      if (lens.playful) pool.unshift("혹시 웃었으면 내 승리야. 안 웃었으면 다음 편에서 재도전할게.");
+      if (lens.awkwardKind) pool.unshift("별말 아니야. 그냥 조금 웃었으면 해서 쓴 거야. 뭐, 그런 거지.");
+      return pool;
+    }
+
+    function isDaonLike(character) {
+      const text = `${getDisplayName(character)} ${character.fullName || ""} ${character.mbti || ""} ${writerText(character)} ${character.tone || ""}`;
+      return /다온|ENFP|활발|장난|감성|즉흥|호기심|사진/.test(text);
+    }
+
+    function idleThoughtPool(topic, character) {
+      const lens = characterLens(character);
+      const pool = [
+        "그러고 보니 이 얘기를 왜 편지로 쓰고 있지.",
+        "별 의미는 없어. 그냥 기억났어.",
+        "근데 적고 나니까 조금 웃기다.",
+        "아무튼 그 장면이 계속 떠올랐어.",
+        "설명하려고 하면 재미없어지는 종류의 일이야.",
+        "너한테 말하면 알아들을 것 같아서 적어봤어.",
+        "이런 얘기는 말로 하면 중간에 까먹을 것 같아.",
+        "그리고 지금 생각났는데, 이건 별로 중요한 얘기가 아니야.",
+        "근데 중요하지 않아서 더 편하게 말하게 되는 것도 있잖아.",
+        "아니, 쓰다 보니 더 이상해졌네."
+      ];
+      if (topic) pool.push(`${topic} 얘기로 시작했는데 어디로 가는지는 나도 모르겠어.`);
+      if (lens.playful) pool.push("혼자 심각한 표정으로 보다가 갑자기 웃겨졌어.");
+      if (lens.practical) pool.push("분류하자면 잡생각. 처리 기한 없음.");
+      if (lens.noble) pool.push("품위 있게 말하려 했는데, 솔직히 그냥 이상했다.");
+      if (lens.quiet) pool.push("크게 말할 얘기는 아니라서 작게 적어둬.");
+      if (lens.nature) pool.push("가만히 두면 알아서 지나갈 생각이었는데, 내가 붙잡아버렸어.");
+      if (lens.awkwardKind) pool.push("괜히 말 꺼냈나 싶지만 이미 늦었어.");
+      if (isDaonLike(character)) {
+        pool.unshift(
+          "너 이거 봤으면 분명 나랑 같은 표정 했을 것 같아. 아니면 내가 너무 신난 걸 수도 있고.",
+          "갑자기 네 생각이 났는데, 왜인지 설명하라면 좀 곤란해.",
+          "아 맞다, 이 얘기 하려고 했는데 중간에 다른 생각이 끼어들었어.",
+          "사진 찍을까 하다가 놓쳤어. 그래서 지금 말로 찍는 중.",
+          "이름 붙여주고 싶었는데 세 글자쯤 생각하다가 까먹었어."
+        );
+      }
+      return pool;
+    }
+
+    function abruptEndingPool(character, category) {
+      const categoryName = normalizeCategoryName(category);
+      const pool = [
+        "그냥 그랬어.",
+        "끝.",
+        "아무튼 이 얘기.",
+        "별건 아니고.",
+        "여기까지.",
+        "갑자기 끝내기.",
+        "나중에 또 생각나면 말할게.",
+        "근데 아마 까먹을 수도 있어.",
+        "이상한 편지 끝.",
+        "쓰고 보니 진짜 메모 같네."
+      ];
+      if (categoryName === "아침 인사") pool.push("아침부터 별 얘기를 다 하지.");
+      if (categoryName === "밤 인사") pool.push("밤이라 그런가, 말이 조금 샜어.");
+      if (categoryName === "응원") pool.push("응원...까지는 아니고 그냥 네 편이라는 메모.");
+      if (categoryName === "개그") pool.push("웃겼으면 됐고, 아니면 다음 기회에.");
+      if (isDaonLike(character)) {
+        pool.unshift(
+          "아, 갑자기 딴 얘기 하고 싶어졌어. 참을게.",
+          "아무튼 보내기 전에 마음 바뀔까 봐 그냥 보냄.",
+          "나 지금 좀 신난 것 같지. 맞아.",
+          "끝! 아니 하나 더 쓰려다가 참았어."
+        );
+      }
+      return pool;
+    }
+
+    function reviewLetterLines(lines, topic) {
+      const bannedFloating = [
+        "그 얘기를 보니까",
+        "그 순간이 떠올랐어",
+        "그런 느낌이 들더라",
+        "괜히 웃음이 났어"
+      ];
+      const bannedWisdom = [
+        "하루를 특별하게",
+        "작은 순간",
+        "충분해",
+        "앞으로 가고",
+        "따뜻했으면",
+        "마음이 덜",
+        "무리하지",
+        "한 걸음",
+        "좋은 인연",
+        "서두르지",
+        "결론을",
+        "의미",
+        "교훈"
+      ];
+      return lines.map((line, index) => {
+        const hasFloating = bannedFloating.some((phrase) => line.includes(phrase));
+        const hasWisdom = bannedWisdom.some((phrase) => line.includes(phrase));
+        if (!hasFloating && !hasWisdom) return line;
+        if (index <= 1) return `${topic} 얘기하려고 했는데, 쓰니까 좀 이상하네.`;
+        return sample([
+          "아무튼 그게 갑자기 생각났어.",
+          "쓰고 보니까 진짜 별 얘기 아니네.",
+          "근데 이런 얘기도 편지에 써도 되나.",
+          "여기까지 쓰고 나니까 좀 민망해졌어.",
+          "설명하려니까 더 이상해져서 그만둘게."
+        ]);
+      });
+    }
+
+    function openerPool(character) {
+      const callName = getUserCallName();
+      const map = {
+        "귀족형": [`안녕하신가, ${callName}.`, `${callName}, 잠시 안부를 전하러 왔단다.`, `오늘은 짧은 서신을 남기겠네, ${callName}.`, `${callName}, 차분히 읽어주면 좋겠구나.`],
+        "츤데레": [`안녕, ${callName}. 뭐, 그냥 편지야.`, `${callName}, 별건 아니고.`, `잠깐만 읽어, ${callName}.`, `${callName}, 굳이 길게 쓸 생각은 없었는데.`],
+        "활발함": [`안녕, ${callName}!`, `${callName}, 잠깐만 여기 봐줘!`, `좋아, ${callName}. 오늘은 이 얘기야!`, `${callName}, 나 지금 할 말 생겼어!`],
+        "감성적": [`안녕, ${callName}.`, `${callName}, 오늘은 짧게 남겨둘게.`, `문득 편지가 쓰고 싶어졌어, ${callName}.`, `${callName}, 조용히 이름을 불러보고 싶었어.`],
+        "현실조언형": [`안녕, ${callName}. 짧게 적어볼게.`, `${callName}, 잠깐만 읽어줘.`, `길게는 안 쓸게, ${callName}.`, `${callName}, 지금 필요한 말만 남겨볼게.`],
+        "차분함": [`안녕, ${callName}. 잠깐 앉아서 읽어줘.`, `${callName}, 조용히 안부를 적어봐.`, `잠시만 숨 고르고 읽어줘, ${callName}.`, `${callName}, 오늘은 느리게 적어볼게.`],
+        "장난기": [`안녕, ${callName}. 이제 내 차례지.`, `${callName}, 편지 하나 남길게.`, `${callName}, 놀라지 마. 이번엔 꽤 얌전한 편지야.`, `자, ${callName}. 오늘의 작은 이벤트야.`],
+        "다정함": [`안녕, ${callName}.`, `${callName}, 문득 안부가 궁금했어.`, `오늘도 이름을 한 번 불러보고 싶었어, ${callName}.`, `${callName}, 짧게 마음을 놓고 갈게.`]
+      };
+      return [
+        ...(map[character.tone] || map["다정함"]),
+        `${callName}, 편지 한 장 남겨둘게.`,
+        `잠깐 네 생각이 스쳐서 적어봐, ${callName}.`,
+        `${callName}, 오늘은 이런 얘기를 해보고 싶었어.`,
+        `혹시 지금 바쁘지 않다면, ${callName}.`,
+        `${callName}, 작은 안부 하나 두고 갈게.`,
+        `별일은 아니지만 들어줘, ${callName}.`,
+        `${callName}, 오늘 본 걸 조금 나눠주고 싶어.`,
+        `편지를 쓰기엔 사소한 얘기일지도 모르지만, ${callName}.`,
+        `${callName}, 잠깐 떠오른 장면이 있어.`,
+        `지금쯤 네가 이걸 읽는다고 생각하면서 적어.`,
+        `${callName}, 말로 하면 금방 사라질 것 같아서 적어둘게.`,
+        `오늘은 이런 안부가 먼저 떠올랐어, ${callName}.`,
+        `${callName}, 너무 길지 않게 써볼게.`,
+        `문득 조용한 얘기가 하고 싶어졌어, ${callName}.`,
+        `${callName}, 오늘은 평범한 얘기 하나야.`
+      ];
+    }
+
+    function composeLetterBody(character, category) {
+      const topic = pickTopic(character, category);
+      const usedEndings = new Set();
+      const opener = pickFreshLine(openerPool(character), "opener", character.id, usedEndings);
+      const occasion = pickFreshLine(topicScenePool(topic), "lines", character.id, usedEndings);
+      const recordPool = makeRecordReflectionPool(character);
+      const isJoke = normalizeCategoryName(category) === "개그";
+      const interpretation = pickFreshLine(
+        isJoke
+          ? (recordPool.length ? [...recordPool, ...jokeStoryPool(topic, character), ...idleThoughtPool(topic, character)] : [...jokeStoryPool(topic, character), ...idleThoughtPool(topic, character)])
+          : (recordPool.length ? [...recordPool, ...idleThoughtPool(topic, character)] : [...idleThoughtPool(topic, character), ...interpretTopicPool(topic, character)]),
+        "lines",
+        character.id,
+        usedEndings
+      );
+      const question = Math.random() < 0.28
+        ? pickFreshLine(
+            isJoke
+              ? [
+                  "너도 오늘 이상한 거 하나 봤어?",
+                  "이거 웃긴 얘기 맞나?",
+                  "지금쯤 너도 뭔가 딴생각 중이려나.",
+                  "아니면 말고."
+                ]
+              : questionPool(topic),
+            "question",
+            character.id,
+            usedEndings
+          )
+        : "";
+      const closing = pickFreshLine(isJoke ? [...abruptEndingPool(character, category), ...jokeClosingPool(character).slice(0, 3)] : abruptEndingPool(character, category), "closing", character.id, usedEndings);
+      const lengthRoll = Math.random();
+      const lengthType = lengthRoll < 0.24 ? "postcard" : (lengthRoll > 0.78 ? "long" : "normal");
+      const extraLine = lengthType === "long"
+        ? pickFreshLine(
+            isJoke ? [...jokeStoryPool(topic, character), ...idleThoughtPool(topic, character)] : idleThoughtPool(topic, character),
+            "lines",
+            character.id,
+            usedEndings
+          )
+        : "";
+      const rawLines = lengthType === "postcard"
+        ? [opener, occasion, closing]
+        : (lengthType === "long" ? [opener, occasion, interpretation, extraLine, question, closing] : [opener, occasion, interpretation, question, closing]);
+      const lines = reviewLetterLines(rawLines.filter(Boolean), topic);
+      return {
+        body: lines.join("\n\n"),
+        lengthType,
+        meta: {
+          characterId: character.id,
+          category: normalizeCategoryName(category),
+          topic,
+          opener,
+          question,
+          closing,
+          lengthType,
+          lines,
+          createdAt: new Date().toISOString()
+        }
+      };
+    }
+
+    function rememberGeneration(meta) {
+      if (!meta) return;
+      state.generationMemory = normalizeGenerationMemory([meta, ...(state.generationMemory || [])]).slice(0, 30);
+    }
+
+    // 편지 생성에 반영되는 입력값
+    // - 실제 성격, MBTI, 말투 스타일, 좋아하는 것, 싫어하는 것은 편지를 쓰는 캐릭터의 목소리와 관점에만 사용한다.
+    // - 사용자 이름/애칭은 호명 방식에, 오늘의 나 기분과 메모는 편지를 받는 사람의 오늘 상태에만 사용한다.
+    // - 캐릭터 성격을 사용자 성격처럼 단정하지 않고, 캐릭터가 자기 이야기를 꺼내는 방식으로만 쓴다.
+    function generateLetter(character, requestedCategory) {
+      const requested = normalizeCategoryName(requestedCategory);
+      const category = requested === "랜덤" ? sample(categories.slice(1)) : requested;
+      const displayName = getDisplayName(character);
+      const emoji = getSignatureEmoji(character);
+      const composed = composeLetterBody(character, category);
+      const themeId = chooseLetterTheme(character, category);
+      const stampEmoji = chooseStampEmoji(character, themeId);
+      return {
+        id: uid("letter"),
+        characterId: character.id,
+        characterName: displayName,
+        title: makeTitle(character, category),
+        category,
+        body: composed.body,
+        signature: `- ${displayName}${emoji ? ` ${emoji}` : ""}`,
+        accentColor: getAccentColor(character),
+        image: getRandomImage(character),
+        themeId,
+        stampEmoji,
+        doodleEmoji: chooseDoodleEmoji(stampEmoji),
+        lengthType: composed.lengthType || "normal",
+        createdAt: new Date().toISOString(),
+        dateLabel: todayKey(),
+        favorite: false,
+        generationMeta: composed.meta
+      };
+    }
+
+    async function hydrateImageElement(img, imageRef) {
+      if (!img || !imageRef) {
+        if (img) img.src = fallbackImage;
+        return;
+      }
+      try {
+        if (imageRef.type === "indexedDB") {
+          const record = await getImage(imageRef.id);
+          if (!record?.blob) throw new Error("image missing");
+          const url = URL.createObjectURL(record.blob);
+          img.onload = () => URL.revokeObjectURL(url);
+          img.src = url;
+        } else if (imageRef.type === "localData") {
+          img.src = imageRef.dataUrl;
+        } else {
+          img.src = fallbackImage;
+        }
+      } catch (_) {
+        img.src = fallbackImage;
+      }
+    }
+
+    function renderLetter(letter) {
+      const display = $("#letterDisplay");
+      const stage = $("#letterStage");
+      if (!letter) {
+        stage.classList.remove("has-accent");
+        stage.classList.remove(...Object.values(letterThemes).map((item) => item.className), "length-postcard", "length-normal", "length-long");
+        stage.style.removeProperty("--accent");
+        display.innerHTML = `
+          <div class="empty-letter">
+            <div>
+              <h2>${state.characters.length ? "우체통 문을 열어볼까요?" : "아직 우체통이 조용해요"}</h2>
+              <p>${state.characters.length ? "오늘의 편지 받기 버튼을 눌러보세요." : "캐릭터를 등록하고 오늘의 편지를 받아보세요."}</p>
+            </div>
+          </div>`;
+        $("#favoriteBtn").disabled = true;
+        $("#screenshotBtn").disabled = true;
+        return;
+      }
+      const character = getCharacterById(letter.characterId);
+      const accentColor = letter.accentColor || getAccentColor(character);
+      const theme = letterThemes[letter.themeId] || letterThemes.cream;
+      stage.classList.remove(...Object.values(letterThemes).map((item) => item.className), "length-postcard", "length-normal", "length-long");
+      stage.classList.add("has-accent");
+      stage.classList.add(theme.className);
+      stage.classList.add(`length-${letter.lengthType || "normal"}`);
+      stage.style.setProperty("--accent", accentColor);
+      const stampEmoji = letter.stampEmoji || chooseStampEmoji(character, letter.themeId || "cream");
+      const doodleEmoji = letter.doodleEmoji || "";
+      display.innerHTML = `
+        <div class="letter-topline">
+          <div class="letter-date">${escapeHtml(formatLetterDate(letter.createdAt || letter.dateLabel))}</div>
+          <div class="stamp" aria-hidden="true">${escapeHtml(stampEmoji)}</div>
+        </div>
+        <div class="letter-profile">
+          <div class="portrait-wrap">
+            <div class="portrait"><img id="currentLetterImage" src="${fallbackImage}" alt="${escapeHtml(letter.characterName)} 이미지"></div>
+          </div>
+          <div class="letter-meta">
+            <h2 class="letter-title">${escapeHtml(letter.title)}</h2>
+          </div>
+        </div>
+        <p class="letter-body">${escapeHtml(letter.body)}</p>
+        <div class="signature">${escapeHtml(letter.signature)}</div>
+        <div class="postmark" aria-hidden="true">SIM MAIL</div>
+        ${doodleEmoji ? `<div class="letter-doodle" aria-hidden="true">${escapeHtml(doodleEmoji)}</div>` : ""}
+      `;
+      hydrateImageElement($("#currentLetterImage"), letter.image);
+      $("#favoriteBtn").disabled = false;
+      $("#screenshotBtn").disabled = false;
+      $("#favoriteBtn").textContent = letter.favorite ? "★ 즐겨찾기됨" : "☆ 즐겨찾기";
+    }
+
+    function renderCategories() {
+      $("#categoryButtons").innerHTML = categories.map((category) => `
+        <button class="category-btn ${state.selectedCategory === category ? "active" : ""}" type="button" data-category="${category}">${category}</button>
+      `).join("");
+    }
+
+    function renderStats() {
+      if (!$("#statCharacters")) return;
+      $("#statCharacters").textContent = state.characters.length;
+      $("#statLetters").textContent = state.letters.length;
+      $("#statFavorites").textContent = state.letters.filter((letter) => letter.favorite).length;
+    }
+
+    function renderProfile() {
+      const profile = normalizeUserProfile(state.userProfile);
+      const record = getTodayRecord();
+      $("#userDisplayName").value = profile.displayName;
+      $("#userCallName").value = profile.callName;
+      $("#todayRecordMood").value = record.mood;
+      $("#todayMemory").value = record.memory;
+    }
+
+    function renderCharacters() {
+      const list = $("#characterList");
+      if (!state.characters.length) {
+        list.innerHTML = `<p class="hint">등록된 캐릭터가 없어요. 첫 심을 만들고 우체통에 숨을 불어넣어 주세요.</p>`;
+        return;
+      }
+      list.innerHTML = state.characters.map((character) => `
+        <article class="character-card" style="border-color: color-mix(in srgb, ${getAccentColor(character)} 38%, var(--line)); box-shadow: inset 3px 0 0 ${getAccentColor(character)};">
+          <header>
+            <h3>${escapeHtml(getSignatureEmoji(character))} ${escapeHtml(getDisplayName(character))}</h3>
+            <div class="tiny-actions">
+              <button type="button" title="편집" data-edit="${character.id}">편집</button>
+              <button type="button" title="이 캐릭터에게서 편지 받기" data-letter-from="${character.id}">편지</button>
+              <button type="button" title="삭제" data-delete-character="${character.id}">삭제</button>
+            </div>
+          </header>
+          <p>${escapeHtml(character.description || character.job || "설명 미정")}</p>
+          <details class="profile-detail">
+            <summary>상세 정보</summary>
+            <dl>
+              ${character.fullName ? `<div><dt>성</dt><dd>${escapeHtml(character.fullName)}</dd></div>` : ""}
+              ${character.nickname ? `<div><dt>애칭</dt><dd>${escapeHtml(character.nickname)}</dd></div>` : ""}
+              <div><dt>성별</dt><dd>${escapeHtml(character.gender || "비공개")}</dd></div>
+              ${character.age ? `<div><dt>나이</dt><dd>${escapeHtml(character.age)}</dd></div>` : ""}
+              ${character.mbti ? `<div><dt>MBTI</dt><dd>${escapeHtml(character.mbti.toUpperCase())}</dd></div>` : ""}
+              ${character.job ? `<div><dt>직업</dt><dd>${escapeHtml(character.job)}</dd></div>` : ""}
+              ${character.personality.length ? `<div><dt>실제 성격</dt><dd>${escapeHtml(character.personality.join(", "))}</dd></div>` : ""}
+              ${character.likes.length ? `<div><dt>좋아함</dt><dd>${escapeHtml(character.likes.join(", "))}</dd></div>` : ""}
+              ${character.dislikes.length ? `<div><dt>싫어함</dt><dd>${escapeHtml(character.dislikes.join(", "))}</dd></div>` : ""}
+            </dl>
+          </details>
+        </article>
+      `).join("");
+    }
+
+    function hasSelectedCharacter() {
+      return state.selectedCharacterId === "all" || state.characters.some((character) => character.id === state.selectedCharacterId);
+    }
+
+    function getSelectedCharacter() {
+      if (!hasSelectedCharacter()) state.selectedCharacterId = "all";
+      return state.selectedCharacterId === "all" ? null : getCharacterById(state.selectedCharacterId);
+    }
+
+    function renderCharacterTargets() {
+      if (!hasSelectedCharacter()) state.selectedCharacterId = "all";
+      const options = [`<option value="all">전체 캐릭터</option>`].concat(
+        state.characters.map((character) => `<option value="${character.id}">${escapeHtml(getDisplayName(character))}</option>`)
+      ).join("");
+      ["#targetCharacterSelect", "#newsTargetCharacterSelect"].forEach((selector) => {
+        const select = $(selector);
+        if (!select) return;
+        select.innerHTML = options;
+        select.value = state.selectedCharacterId || "all";
+      });
+    }
+
+    function updateSelectedCharacter(value) {
+      state.selectedCharacterId = value || "all";
+      if (!hasSelectedCharacter()) state.selectedCharacterId = "all";
+      saveState();
+      renderCharacterTargets();
+    }
+
+    function renderHistory() {
+      $$("#showLetterArchive, #showNewsArchive").forEach((button) => {
+        button.classList.toggle("active", button.id === (archiveMode === "letters" ? "showLetterArchive" : "showNewsArchive"));
+      });
+      const archiveTools = $(".archive-tools");
+      if (archiveTools) archiveTools.style.display = archiveMode === "letters" ? "" : "none";
+      if (archiveMode === "news") {
+        renderNewsArchive();
+        return;
+      }
+      const favorites = state.letters.filter((letter) => letter.favorite);
+      let historyLetters = archiveFilter === "favorites" ? favorites : state.letters;
+      if (archiveCharacterFilter !== "all") {
+        historyLetters = historyLetters.filter((letter) => letter.characterId === archiveCharacterFilter);
+      }
+      historyLetters = [...historyLetters].sort((a, b) => {
+        const left = new Date(a.createdAt || 0).getTime();
+        const right = new Date(b.createdAt || 0).getTime();
+        return archiveSort === "oldest" ? left - right : right - left;
+      });
+      $("#archiveTitle").textContent = archiveFilter === "favorites" ? "즐겨찾기 편지" : "받은 편지";
+      renderArchiveControls();
+      $("#historyList").innerHTML = historyLetters.length ? historyLetters.map((letter, index) => `
+        <article class="history-card">
+          <div class="mini-thumb"><img src="${fallbackImage}" data-history-image="${index}" alt=""></div>
+          <div>
+            <b class="history-title">${letter.favorite ? "★ " : ""}${escapeHtml(letter.title)}</b>
+            <div class="history-meta">${escapeHtml(letter.characterName)} · ${escapeHtml(letter.dateLabel || formatLetterDate(letter.createdAt))}</div>
+            <div class="card-actions">
+              <button type="button" data-open-letter="${letter.id}">읽기</button>
+              <button type="button" data-toggle-favorite="${letter.id}">${letter.favorite ? "★ 즐겨찾기됨" : "☆ 즐겨찾기"}</button>
+              <button type="button" data-delete-letter="${letter.id}">삭제</button>
+            </div>
+          </div>
+        </article>
+      `).join("") : `<p class="hint">${archiveFilter === "favorites" ? "즐겨찾기한 편지가 없어요." : "아직 받은 편지가 없어요."}</p>`;
+      historyLetters.forEach((letter, index) => hydrateImageElement($(`[data-history-image="${index}"]`), letter.image));
+    }
+
+    function renderNewsArchive() {
+      $("#archiveTitle").textContent = "오늘의 소식";
+      const list = $("#historyList");
+      const archived = [...(state.newsArchive || [])].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+      list.innerHTML = archived.length ? archived.map((news, index) => `
+        <article class="history-card news-archive-card">
+          <div class="mini-thumb"><img src="${fallbackImage}" data-news-archive-image="${index}" alt=""></div>
+          <div>
+            <b class="history-title">${escapeHtml(news.title)}</b>
+            <span class="news-archive-label">${escapeHtml(news.recordLabel)}</span>
+            <div class="history-meta">${escapeHtml(formatLetterDate(news.createdAt))}</div>
+            <p class="hint">${escapeHtml(news.quote).slice(0, 80)}</p>
+            <div class="card-actions">
+              <button type="button" data-open-news="${news.id}">보기</button>
+              <button type="button" data-delete-news="${news.id}">삭제</button>
+            </div>
+          </div>
+        </article>
+      `).join("") : `<p class="hint">보관한 오늘의 소식이 없어요.</p>`;
+      archived.forEach((news, index) => hydrateImageElement($(`[data-news-archive-image="${index}"]`), news.image));
+    }
+
+    function renderArchiveControls() {
+      const characterSelect = $("#archiveCharacterFilter");
+      const sortSelect = $("#archiveSort");
+      if (characterSelect) {
+        const options = [`<option value="all">전체 캐릭터</option>`].concat(
+          state.characters.map((character) => `<option value="${character.id}">${escapeHtml(getDisplayName(character))}</option>`)
+        );
+        characterSelect.innerHTML = options.join("");
+        characterSelect.value = state.characters.some((character) => character.id === archiveCharacterFilter) ? archiveCharacterFilter : "all";
+        archiveCharacterFilter = characterSelect.value;
+      }
+      if (sortSelect) sortSelect.value = archiveSort;
+    }
+
+    function compactKeywordText(parts) {
+      return parts
+        .flat(Infinity)
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase()
+        .replace(/\s/g, "");
+    }
+
+    function countKeywordMatches(text, keywords = []) {
+      return keywords.reduce((count, keyword) => {
+        const normalized = String(keyword).toLowerCase().replace(/\s/g, "");
+        return normalized && text.includes(normalized) ? count + 1 : count;
+      }, 0);
+    }
+
+    function weightedSample(items) {
+      const total = items.reduce((sum, item) => sum + item.weight, 0);
+      let cursor = Math.random() * total;
+      for (const item of items) {
+        cursor -= item.weight;
+        if (cursor <= 0) return item.theme;
+      }
+      return items.at(-1)?.theme || sample(newsThemes);
+    }
+
+    function chooseNewsTheme(character) {
+      const positiveText = compactKeywordText([
+        getDisplayName(character),
+        character.fullName,
+        character.job,
+        character.mbti,
+        character.tone,
+        character.description,
+        character.likes,
+        character.personality
+      ]);
+      const dislikeText = compactKeywordText([character.dislikes]);
+      const month = new Date().getMonth() + 1;
+      const summerIds = new Set(["summer", "beach", "garden", "photo_walk"]);
+      let matched = 0;
+      const weighted = newsThemes.map((theme) => {
+        const keywords = themeKeywordMap[theme.id] || [];
+        const positiveMatches = countKeywordMatches(positiveText, keywords);
+        const dislikeMatches = countKeywordMatches(dislikeText, keywords);
+        matched += positiveMatches;
+        let weight = 1 + (positiveMatches * 2.4);
+        if (month >= 6 && month <= 8 && summerIds.has(theme.id)) weight += 0.8;
+        if (dislikeMatches) weight -= dislikeMatches * 1.7;
+        return {
+          theme,
+          weight: Math.max(0.35, weight)
+        };
+      });
+      if (!matched) {
+        const seasonalPool = month >= 6 && month <= 8
+          ? [...newsThemes, ...newsThemes.filter((theme) => summerIds.has(theme.id))]
+          : newsThemes;
+        return sample(seasonalPool);
+      }
+      return weightedSample(weighted);
+    }
+
+    function chooseNewsCharacter() {
+      return getSelectedCharacter() || sample(state.characters);
+    }
+
+    function generateTodayNews() {
+      const character = chooseNewsCharacter();
+      if (!character) return null;
+      const theme = chooseNewsTheme(character);
+      const name = getDisplayName(character);
+      return normalizeNewsItem({
+        id: uid("news"),
+        characterId: character.id,
+        characterName: name,
+        title: `📔 ${name}의 오늘`,
+        themeId: theme.id,
+        mood: sample(theme.mood),
+        place: sample(theme.places),
+        event: sample(theme.events),
+        recordLabel: sample(theme.recordLabels || [theme.label]),
+        belongings: [...new Set([sample(theme.belongings || []), sample(theme.belongings || []), sample(theme.belongings || [])].filter(Boolean))].slice(0, 3),
+        discovery: sample(theme.discoveries || ["별건 아닌데 기억에 남았어."]),
+        quote: sample(theme.quotes),
+        image: getPrimaryImage(character),
+        accentColor: getAccentColor(character),
+        isFavorite: false,
+        createdAt: new Date().toISOString()
+      });
+    }
+
+    function renderNews() {
+      const display = $("#newsDisplay");
+      const stage = $("#newsStage");
+      if (!display) return;
+      const news = normalizeNewsItem(state.currentNews);
+      if (!news) {
+        if (stage) stage.classList.remove(...newsThemes.map((theme) => theme.className));
+        display.className = "news-empty";
+        display.innerHTML = `
+          <h2>오늘의 소식을 열어볼까요?</h2>
+          <p>오늘의 소식 받기 버튼을 눌러보세요.</p>
+        `;
+        renderNewsActions();
+        return;
+      }
+      const theme = newsThemes.find((item) => item.id === news.themeId) || newsThemes[0];
+      if (stage) {
+        stage.classList.remove(...newsThemes.map((item) => item.className));
+        stage.classList.add(theme.className);
+      }
+      display.className = `news-card ${theme.className}`;
+      display.innerHTML = `
+        <div class="news-card-inner">
+          <header class="news-head">
+            <div class="news-avatar"><img src="${fallbackImage}" id="currentNewsImage" alt="${escapeHtml(news.characterName)} 이미지"></div>
+            <div>
+              <h2 class="news-title">${escapeHtml(news.title)}</h2>
+              <div class="news-record-label">${escapeHtml(news.recordLabel)}</div>
+              <div class="news-date">${escapeHtml(formatLetterDate(news.createdAt))} · ${escapeHtml(theme.label)}</div>
+            </div>
+          </header>
+          <div class="news-grid">
+            <div class="news-item">
+              <span class="news-label">😊 기분</span>
+              <div class="news-value">${escapeHtml(news.mood)}</div>
+            </div>
+            <div class="news-item">
+              <span class="news-label">📍 장소</span>
+              <div class="news-value">${escapeHtml(news.place)}</div>
+            </div>
+            <div class="news-item wide">
+              <span class="news-label">🎲 오늘의 사건</span>
+              <div class="news-value">${escapeHtml(news.event)}</div>
+            </div>
+            <div class="news-item wide">
+              <span class="news-label">🎒 오늘의 소지품</span>
+              <div class="belonging-chips">${news.belongings.map((item) => `<span class="belonging-chip">${escapeHtml(item)}</span>`).join("")}</div>
+            </div>
+            <div class="news-item wide">
+              <span class="news-label">🔎 오늘의 발견</span>
+              <div class="news-value discovery-note">${escapeHtml(news.discovery)}</div>
+            </div>
+            <div class="news-item wide">
+              <span class="news-label">📝 한마디</span>
+              <div class="news-value">${escapeHtml(news.quote)}</div>
+            </div>
+          </div>
+        </div>
+        <div class="news-sticker" aria-hidden="true">${escapeHtml(theme.sticker)}</div>
+      `;
+      hydrateImageElement($("#currentNewsImage"), news.image);
+      renderNewsActions();
+    }
+
+    function renderNewsActions() {
+      const actions = $("#newsActions");
+      if (!actions) return;
+      actions.innerHTML = state.currentNews ? `
+        <button class="secondary-btn" type="button" data-news-refresh>다른 소식 보기</button>
+        <button class="ghost-btn" type="button" id="screenshotNewsBtn">📸 스크린샷</button>
+      ` : `
+        <button class="primary-btn" type="button" data-news-refresh>오늘의 소식 받기</button>
+      `;
+    }
+
+    function archiveNewsItem(newsItem) {
+      const news = normalizeNewsItem(newsItem);
+      if (!news) return;
+      state.newsArchive = state.newsArchive || [];
+      if (!state.newsArchive.some((item) => item.id === news.id)) {
+        state.newsArchive.unshift(news);
+        return true;
+      }
+      return false;
+    }
+
+    function renderArchiveLetterPreview(letter) {
+      const character = getCharacterById(letter.characterId);
+      const accentColor = letter.accentColor || getAccentColor(character);
+      const theme = letterThemes[letter.themeId] || letterThemes.cream;
+      const stampEmoji = letter.stampEmoji || chooseStampEmoji(character, letter.themeId || "cream");
+      const doodleEmoji = letter.doodleEmoji || "";
+      $("#archivePreviewTitle").textContent = letter.title || "편지 보기";
+      $("#archivePreviewBody").innerHTML = `
+        <article class="panel letter-stage has-accent ${theme.className} length-${letter.lengthType || "normal"}" style="--accent: ${escapeHtml(accentColor)}">
+          <div class="letter-inner">
+            <div class="letter-topline">
+              <div class="letter-date">${escapeHtml(formatLetterDate(letter.createdAt || letter.dateLabel))}</div>
+              <div class="stamp" aria-hidden="true">${escapeHtml(stampEmoji)}</div>
+            </div>
+            <div class="letter-profile">
+              <div class="portrait-wrap">
+                <div class="portrait"><img id="archivePreviewLetterImage" src="${fallbackImage}" alt="${escapeHtml(letter.characterName)} 이미지"></div>
+              </div>
+              <div class="letter-meta">
+                <h2 class="letter-title">${escapeHtml(letter.title)}</h2>
+              </div>
+            </div>
+            <p class="letter-body">${escapeHtml(letter.body)}</p>
+            <div class="signature">${escapeHtml(letter.signature)}</div>
+            <div class="postmark" aria-hidden="true">SIM MAIL</div>
+            ${doodleEmoji ? `<div class="letter-doodle" aria-hidden="true">${escapeHtml(doodleEmoji)}</div>` : ""}
+          </div>
+        </article>
+      `;
+      $("#archivePreviewActions").innerHTML = "";
+      hydrateImageElement($("#archivePreviewLetterImage"), letter.image);
+    }
+
+    function renderArchiveNewsPreview(newsItem) {
+      const news = normalizeNewsItem(newsItem);
+      const theme = newsThemes.find((item) => item.id === news.themeId) || newsThemes[0];
+      $("#archivePreviewTitle").textContent = news.title || "오늘의 소식 보기";
+      $("#archivePreviewBody").innerHTML = `
+        <article class="panel news-stage ${theme.className}">
+          <div class="news-card ${theme.className}">
+            <div class="news-card-inner">
+              <header class="news-head">
+                <div class="news-avatar"><img src="${fallbackImage}" id="archivePreviewNewsImage" alt="${escapeHtml(news.characterName)} 이미지"></div>
+                <div>
+                  <h2 class="news-title">${escapeHtml(news.title)}</h2>
+                  <div class="news-record-label">${escapeHtml(news.recordLabel)}</div>
+                  <div class="news-date">${escapeHtml(formatLetterDate(news.createdAt))} · ${escapeHtml(theme.label)}</div>
+                </div>
+              </header>
+              <div class="news-grid">
+                <div class="news-item">
+                  <span class="news-label">😊 기분</span>
+                  <div class="news-value">${escapeHtml(news.mood)}</div>
+                </div>
+                <div class="news-item">
+                  <span class="news-label">📍 장소</span>
+                  <div class="news-value">${escapeHtml(news.place)}</div>
+                </div>
+                <div class="news-item wide">
+                  <span class="news-label">🎲 오늘의 사건</span>
+                  <div class="news-value">${escapeHtml(news.event)}</div>
+                </div>
+                <div class="news-item wide">
+                  <span class="news-label">🎒 오늘의 소지품</span>
+                  <div class="belonging-chips">${news.belongings.map((item) => `<span class="belonging-chip">${escapeHtml(item)}</span>`).join("")}</div>
+                </div>
+                <div class="news-item wide">
+                  <span class="news-label">🔎 오늘의 발견</span>
+                  <div class="news-value discovery-note">${escapeHtml(news.discovery)}</div>
+                </div>
+                <div class="news-item wide">
+                  <span class="news-label">📝 한마디</span>
+                  <div class="news-value">${escapeHtml(news.quote)}</div>
+                </div>
+              </div>
+            </div>
+            <div class="news-sticker" aria-hidden="true">${escapeHtml(theme.sticker)}</div>
+          </div>
+        </article>
+      `;
+      $("#archivePreviewActions").innerHTML = "";
+      hydrateImageElement($("#archivePreviewNewsImage"), news.image);
+    }
+
+    function openArchivePreview(type, id) {
+      if (type === "letter") {
+        const letter = state.letters.find((item) => item.id === id);
+        if (!letter) return;
+        renderArchiveLetterPreview(letter);
+      }
+      if (type === "news") {
+        const news = (state.newsArchive || []).find((item) => item.id === id);
+        if (!news) return;
+        renderArchiveNewsPreview(news);
+      }
+      const modal = $("#archivePreviewModal");
+      if (modal) modal.hidden = false;
+    }
+
+    function closeArchivePreview() {
+      const modal = $("#archivePreviewModal");
+      if (modal) modal.hidden = true;
+      const body = $("#archivePreviewBody");
+      if (body) body.innerHTML = "";
+    }
+
+    function renderAll() {
+      syncMobileLayoutClass();
+      document.body.classList.toggle("dark", Boolean(state.darkMode));
+      renderStats();
+      renderCategories();
+      renderProfile();
+      renderCharacters();
+      renderCharacterTargets();
+      renderHistory();
+      renderLetter(getCurrentLetter());
+      renderNews();
+      updateStorageInfo();
+    }
+
+    function resetTransientView(tab) {
+      if (tab === "mail") {
+        state.currentLetterId = null;
+        renderLetter(null);
+      }
+      if (tab === "news") {
+        state.currentNews = null;
+        renderNews();
+      }
+    }
+
+    function switchTab(tab, options = {}) {
+      const isAlreadyActive = $(`.tab-btn.active`)?.dataset.tab === tab;
+      $$(".tab-btn").forEach((button) => button.classList.toggle("active", button.dataset.tab === tab));
+      $$(".view").forEach((view) => view.classList.toggle("active", view.id === `view-${tab}`));
+      const grid = $("#workspaceGrid");
+      if (grid) {
+        grid.classList.remove("mode-mail", "mode-news", "mode-archive");
+        grid.classList.add(`mode-${tab}`);
+      }
+      if (!options.keepCurrent && !isAlreadyActive) resetTransientView(tab);
+      if (tab === "archive") renderHistory();
+      if (tab === "news" && options.keepCurrent) renderNews();
+    }
+
+    function openCharacterManager() {
+      const modal = $("#characterModal");
+      if (modal) modal.hidden = false;
+      setTimeout(() => $("#displayName")?.focus(), 0);
+    }
+
+    function closeCharacterManager() {
+      const modal = $("#characterModal");
+      if (modal) modal.hidden = true;
+    }
+
+    function saveUserProfileFromInputs() {
+      state.userProfile = normalizeUserProfile({
+        displayName: $("#userDisplayName").value,
+        callName: $("#userCallName").value,
+        mood: state.userProfile?.mood || defaultState.userProfile.mood
+      });
+      saveState();
+    }
+
+    function saveTodayRecordFromInputs() {
+      const key = todayRecordKey();
+      const record = normalizeDailyRecord({
+        date: key,
+        activities: "",
+        mood: $("#todayRecordMood").value,
+        memory: $("#todayMemory").value,
+        updatedAt: new Date().toISOString()
+      }, key);
+      state.dailyRecords = {
+        ...(state.dailyRecords || {}),
+        [key]: record
+      };
+      saveState();
+      return record;
+    }
+
+    function receiveLetter(characterOverride = null) {
+      if (!state.characters.length) {
+        toast("먼저 캐릭터를 등록해 주세요.");
+        openCharacterManager();
+        return;
+      }
+      saveUserProfileFromInputs();
+      saveTodayRecordFromInputs();
+      const character = characterOverride || getSelectedCharacter() || sample(state.characters);
+      const letter = generateLetter(character, state.selectedCategory);
+      state.letters.unshift(letter);
+      rememberGeneration(letter.generationMeta);
+      state.currentLetterId = letter.id;
+      saveState();
+      renderAll();
+      switchTab("mail", { keepCurrent: true });
+      toast(`${getDisplayName(character)}에게서 편지가 왔어요.`);
+    }
+
+    function receiveNews() {
+      if (!state.characters.length) {
+        toast("먼저 캐릭터를 등록해 주세요.");
+        openCharacterManager();
+        return;
+      }
+      saveUserProfileFromInputs();
+      saveTodayRecordFromInputs();
+      state.currentNews = generateTodayNews();
+      archiveNewsItem(state.currentNews);
+      saveState();
+      renderNews();
+      if (archiveMode === "news") renderHistory();
+      switchTab("news", { keepCurrent: true });
+      toast(`${state.currentNews.characterName}의 오늘이 도착했어요.`);
+    }
+
+    function collectCharacterFromForm() {
+      const displayName = $("#displayName").value.trim();
+      if (!displayName) throw new Error("이름은 필수입니다.");
+      return {
+        id: $("#editingId").value || uid("char"),
+        displayName,
+        fullName: $("#fullName").value.trim(),
+        nickname: $("#nickname").value.trim(),
+        gender: $("#gender").value,
+        age: $("#age").value.trim(),
+        mbti: $("#mbti").value.trim(),
+        job: $("#job").value.trim(),
+        likes: parseList($("#likes").value),
+        dislikes: parseList($("#dislikes").value),
+        personality: parseList($("#personality").value),
+        tone: $("#tone").value,
+        description: $("#description").value.trim(),
+        signatureEmoji: $("#signatureEmoji").value.trim().slice(0, 4),
+        images: pendingImages.slice(),
+        primaryImageId: pendingImages.some((image) => image.id === pendingPrimaryImageId) ? pendingPrimaryImageId : (pendingImages[0]?.id || ""),
+        createdAt: getCharacterById($("#editingId").value)?.createdAt || new Date().toISOString()
+      };
+    }
+
+    function fillForm(character) {
+      $("#editingId").value = character.id;
+      $("#formTitle").textContent = `${getDisplayName(character)} 편집`;
+      $("#displayName").value = character.displayName;
+      $("#fullName").value = character.fullName;
+      $("#nickname").value = character.nickname || "";
+      $("#gender").value = character.gender || "비공개";
+      $("#age").value = character.age;
+      $("#mbti").value = character.mbti;
+      $("#job").value = character.job;
+      $("#likes").value = character.likes.join(", ");
+      $("#dislikes").value = character.dislikes.join(", ");
+      $("#personality").value = character.personality.join(", ");
+      $("#tone").value = character.tone;
+      $("#description").value = character.description;
+      $("#signatureEmoji").value = character.signatureEmoji;
+      pendingImages = character.images.slice();
+      pendingPrimaryImageId = character.primaryImageId || character.images[0]?.id || "";
+      renderImagePreview();
+      openCharacterManager();
+    }
+
+    function resetForm() {
+      $("#characterForm").reset();
+      $("#editingId").value = "";
+      $("#formTitle").textContent = "캐릭터 등록";
+      $("#tone").value = "";
+      pendingImages = [];
+      pendingPrimaryImageId = "";
+      renderImagePreview();
+      clearFormError();
+    }
+
+    function loadBitmapFallback(file) {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = reject;
+        img.src = URL.createObjectURL(file);
+      });
+    }
+
+    async function resizeImage(file) {
+      const bitmap = window.createImageBitmap ? await createImageBitmap(file) : await loadBitmapFallback(file);
+      const max = 500;
+      const ratio = Math.min(1, max / Math.max(bitmap.width, bitmap.height));
+      const width = Math.max(1, Math.round(bitmap.width * ratio));
+      const height = Math.max(1, Math.round(bitmap.height * ratio));
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      canvas.getContext("2d").drawImage(bitmap, 0, 0, width, height);
+      const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.78));
+      if (!window.createImageBitmap) URL.revokeObjectURL(bitmap.src);
+      bitmap.close?.();
+      return { blob, width, height };
+    }
+
+    async function handleImages(files) {
+      const added = [];
+      for (const file of files) {
+        try {
+          const resized = await resizeImage(file);
+          const record = { id: uid("img"), blob: resized.blob, mime: "image/jpeg", size: resized.blob.size, name: file.name, createdAt: new Date().toISOString() };
+          await putImage(record);
+          added.push({ type: "indexedDB", id: record.id, size: record.size, name: record.name });
+        } catch (error) {
+          showFormError(`이미지 처리 실패: ${file.name} (${error.message || error})`);
+        }
+      }
+      pendingImages.push(...added);
+      if (!pendingPrimaryImageId && pendingImages.length) pendingPrimaryImageId = pendingImages[0].id;
+      renderImagePreview();
+      updateStorageInfo();
+      if (added.length) toast(`이미지 ${added.length}장을 줄여 저장했어요.`);
+    }
+
+    function formatBytes(bytes) {
+      if (!bytes) return "0 KB";
+      if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+      return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+    }
+
+    function renderImagePreview() {
+      if (!pendingImages.some((image) => image.id === pendingPrimaryImageId)) {
+        pendingPrimaryImageId = pendingImages[0]?.id || "";
+      }
+      const totalSize = pendingImages.reduce((sum, image) => sum + (image.size || 0), 0);
+      $("#imageInfo").textContent = pendingImages.length
+        ? `이미지 ${pendingImages.length}장 · 저장 전 이미지 용량 ${formatBytes(totalSize)}`
+        : "업로드 시 최대 500px, JPEG 78% 품질로 줄여 IndexedDB에 저장합니다.";
+      $("#imagePreview").innerHTML = pendingImages.map((image, index) => `
+        <div class="preview ${image.id === pendingPrimaryImageId ? "primary" : ""}">
+          <img src="${fallbackImage}" data-preview-image="${index}" alt="">
+          <span class="preview-size">${formatBytes(image.size || 0)}</span>
+          <button class="preview-delete" type="button" data-delete-preview="${image.id}" aria-label="이미지 삭제">×</button>
+          <button class="preview-primary" type="button" data-primary-preview="${image.id}">${image.id === pendingPrimaryImageId ? "대표 이미지" : "대표 지정"}</button>
+        </div>
+      `).join("");
+      pendingImages.forEach((image, index) => hydrateImageElement($(`[data-preview-image="${index}"]`), image));
+    }
+
+    function updateStorageInfo() {
+      const localBytes = new Blob([localStorage.getItem(STORAGE_KEY) || ""]).size;
+      const imageBytes = state.characters.flatMap((c) => c.images || []).reduce((sum, image) => sum + (image.size || 0), 0);
+      const largest = state.characters
+        .flatMap((character) => (character.images || []).map((image) => ({ character: getDisplayName(character), image })))
+        .sort((a, b) => (b.image.size || 0) - (a.image.size || 0))[0];
+      const text = `LocalStorage 텍스트 ${formatBytes(localBytes)} · IndexedDB 이미지 참조 ${formatBytes(imageBytes)}${largest ? ` · 가장 큰 이미지: ${largest.character} ${formatBytes(largest.image.size)}` : ""}`;
+      const el = $("#storageInfo");
+      if (el) el.textContent = text;
+    }
+
+    async function deleteCharacter(id) {
+      const character = getCharacterById(id);
+      if (!character || !confirm(`${getDisplayName(character)} 캐릭터와 관련 편지를 모두 삭제할까요?`)) return;
+      for (const image of character.images || []) await deleteImage(image.id);
+      state.characters = state.characters.filter((item) => item.id !== id);
+      state.letters = state.letters.filter((letter) => letter.characterId !== id);
+      state.newsArchive = (state.newsArchive || []).filter((news) => news.characterId !== id);
+      if (state.currentNews?.characterId === id) state.currentNews = null;
+      if (state.currentLetterId && !state.letters.some((letter) => letter.id === state.currentLetterId)) state.currentLetterId = null;
+      saveState();
+      renderAll();
+      toast("삭제되었습니다.");
+    }
+
+    async function deleteLetter(id) {
+      const letter = state.letters.find((item) => item.id === id);
+      if (!letter || !confirm("이 편지를 삭제할까요?")) return;
+      state.letters = state.letters.filter((item) => item.id !== id);
+      if (state.currentLetterId === id) state.currentLetterId = null;
+      saveState();
+      renderAll();
+      toast("편지를 삭제했어요.");
+    }
+
+    function deleteNewsArchiveItem(id) {
+      const news = (state.newsArchive || []).find((item) => item.id === id);
+      if (!news || !confirm("이 오늘의 소식을 삭제할까요?")) return;
+      state.newsArchive = (state.newsArchive || []).filter((item) => item.id !== id);
+      if (state.currentNews?.id === id) state.currentNews = null;
+      saveState();
+      renderHistory();
+      renderNews();
+      renderNewsActions();
+      toast("오늘의 소식을 삭제했어요.");
+    }
+
+    function toggleFavorite(id) {
+      const letter = state.letters.find((item) => item.id === id);
+      if (!letter) return;
+      letter.favorite = !letter.favorite;
+      saveState();
+      renderAll();
+    }
+
+    function sanitizeFileName(value) {
+      return String(value || "sim")
+        .trim()
+        .replace(/[\\/:*?"<>|]+/g, "-")
+        .replace(/\s+/g, "-")
+        .slice(0, 40) || "sim";
+    }
+
+    function loadScript(src) {
+      return new Promise((resolve, reject) => {
+        const existing = [...document.scripts].find((script) => script.src === src);
+        if (existing && existing.dataset.loaded === "true") {
+          resolve();
+          return;
+        }
+        if (existing) existing.remove();
+        const script = document.createElement("script");
+        script.src = src;
+        script.async = true;
+        const timeout = window.setTimeout(() => {
+          script.remove();
+          reject(new Error("script load timeout"));
+        }, 8000);
+        script.onload = () => {
+          window.clearTimeout(timeout);
+          script.dataset.loaded = "true";
+          resolve();
+        };
+        script.onerror = () => {
+          window.clearTimeout(timeout);
+          script.remove();
+          reject(new Error("script load failed"));
+        };
+        document.head.appendChild(script);
+      });
+    }
+
+    async function ensureHtml2Canvas() {
+      if (typeof window.html2canvas === "function") return true;
+      for (const source of HTML2CANVAS_SOURCES) {
+        try {
+          await loadScript(source);
+          if (typeof window.html2canvas === "function") {
+            window.html2canvasLoadFailed = false;
+            return true;
+          }
+        } catch (_) {}
+      }
+      return false;
+    }
+
+    function blobToDataUrl(blob) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    }
+
+    async function imageRefToDataUrl(imageRef) {
+      if (!imageRef) return fallbackImage;
+      if (imageRef.type === "localData" && imageRef.dataUrl) return imageRef.dataUrl;
+      if (imageRef.type === "indexedDB" && imageRef.id) {
+        const record = await getImage(imageRef.id);
+        if (record?.blob) return blobToDataUrl(record.blob);
+      }
+      return fallbackImage;
+    }
+
+    async function waitForImages(root) {
+      const images = [...root.querySelectorAll("img")];
+      await Promise.all(images.map(async (img) => {
+        if (img.complete && img.naturalWidth) return;
+        if (img.decode) {
+          try {
+            await img.decode();
+            return;
+          } catch (_) {}
+        }
+        await new Promise((resolve) => {
+          img.onload = resolve;
+          img.onerror = resolve;
+        });
+      }));
+    }
+
+    function stageToCanvasFallback(stage) {
+      return new Promise((resolve, reject) => {
+        const rect = stage.getBoundingClientRect();
+        const width = Math.max(1, Math.ceil(rect.width));
+        const height = Math.max(1, Math.ceil(stage.scrollHeight || rect.height));
+        const clone = stage.cloneNode(true);
+        clone.style.width = `${width}px`;
+        clone.style.minHeight = `${height}px`;
+        clone.style.margin = "0";
+        const styleText = [...document.querySelectorAll("style")].map((style) => style.textContent || "").join("\n");
+        const wrapper = document.createElement("div");
+        wrapper.setAttribute("xmlns", "http://www.w3.org/1999/xhtml");
+        const style = document.createElement("style");
+        style.textContent = styleText;
+        wrapper.appendChild(style);
+        wrapper.appendChild(clone);
+        const serialized = new XMLSerializer().serializeToString(wrapper);
+        const svg = `
+          <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
+            <foreignObject width="100%" height="100%">${serialized}</foreignObject>
+          </svg>`;
+        const blob = new Blob([svg], { type: "image/svg+xml;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const image = new Image();
+        image.onload = () => {
+          const scale = Math.min(2, window.devicePixelRatio || 1.5);
+          const canvas = document.createElement("canvas");
+          canvas.width = Math.round(width * scale);
+          canvas.height = Math.round(height * scale);
+          const context = canvas.getContext("2d");
+          context.fillStyle = getComputedStyle(stage).backgroundColor || "#fffaf0";
+          context.fillRect(0, 0, canvas.width, canvas.height);
+          context.scale(scale, scale);
+          context.drawImage(image, 0, 0, width, height);
+          URL.revokeObjectURL(url);
+          resolve(canvas);
+        };
+        image.onerror = () => {
+          URL.revokeObjectURL(url);
+          reject(new Error("fallback screenshot failed"));
+        };
+        image.src = url;
+      });
+    }
+
+    async function downloadLetterScreenshot() {
+      const letter = getCurrentLetter();
+      const stage = $("#letterStage");
+      if (!letter || !stage) return;
+      const isReady = await ensureHtml2Canvas();
+      const image = $("#currentLetterImage");
+      try {
+        if (image) {
+          image.src = await imageRefToDataUrl(letter.image);
+          await waitForImages(stage);
+        }
+        if (!isReady) throw new Error("html2canvas unavailable");
+        let canvas;
+        try {
+          canvas = await window.html2canvas(stage, {
+            backgroundColor: getComputedStyle(stage).backgroundColor || "#fffaf0",
+            scale: Math.min(2, window.devicePixelRatio || 1.5),
+            useCORS: false,
+            allowTaint: false,
+            logging: false,
+            scrollX: 0,
+            scrollY: -window.scrollY,
+            windowWidth: document.documentElement.scrollWidth,
+            windowHeight: document.documentElement.scrollHeight
+          });
+        } catch (error) {
+          console.warn("html2canvas failed, trying fallback", error);
+        }
+        if (!canvas) canvas = await stageToCanvasFallback(stage);
+        const pngUrl = canvas.toDataURL("image/png");
+        const date = formatLetterDate(letter.createdAt).replace(/\.\s*/g, "-").replace(/-$/, "");
+        const filename = `sim-mail-${date}-${sanitizeFileName(letter.characterName)}.png`;
+        const link = document.createElement("a");
+        link.href = pngUrl;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        toast("편지 스크린샷을 저장했어요.");
+      } catch (error) {
+        console.warn("Screenshot failed", error);
+        toast(isReady ? "스크린샷 저장에 실패했습니다. 이미지를 다시 불러온 뒤 시도해 주세요." : "스크린샷 라이브러리 로딩에 실패했습니다.");
+      } finally {
+        if (image) hydrateImageElement(image, letter.image);
+      }
+    }
+
+    async function downloadNewsScreenshot() {
+      const news = normalizeNewsItem(state.currentNews);
+      const stage = $(".news-card") || $("#newsStage");
+      if (!news || !stage) return;
+      const isReady = await ensureHtml2Canvas();
+      const image = $("#currentNewsImage");
+      try {
+        if (image) {
+          image.src = await imageRefToDataUrl(news.image);
+          await waitForImages(stage);
+        }
+        if (!isReady) throw new Error("html2canvas unavailable");
+        let canvas;
+        try {
+          canvas = await window.html2canvas(stage, {
+            backgroundColor: getComputedStyle(stage).backgroundColor || "#fffaf0",
+            scale: Math.min(2, window.devicePixelRatio || 1.5),
+            useCORS: false,
+            allowTaint: false,
+            logging: false,
+            scrollX: 0,
+            scrollY: -window.scrollY,
+            windowWidth: document.documentElement.scrollWidth,
+            windowHeight: document.documentElement.scrollHeight
+          });
+        } catch (error) {
+          console.warn("html2canvas news failed, trying fallback", error);
+        }
+        if (!canvas) canvas = await stageToCanvasFallback(stage);
+        const pngUrl = canvas.toDataURL("image/png");
+        const date = formatLetterDate(news.createdAt).replace(/\.\s*/g, "-").replace(/-$/, "");
+        const filename = `sims-news-${date}-${sanitizeFileName(news.characterName)}.png`;
+        const link = document.createElement("a");
+        link.href = pngUrl;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        toast("오늘의 소식 스크린샷을 저장했어요.");
+      } catch (error) {
+        console.warn("News screenshot failed", error);
+        toast(isReady ? "오늘의 소식 스크린샷 저장에 실패했습니다." : "스크린샷 라이브러리 로딩에 실패했습니다.");
+      } finally {
+        if (image) hydrateImageElement(image, news.image);
+      }
+    }
+
+    function handleStatClick(target) {
+      if (target === "characters") {
+        openCharacterManager();
+        return;
+      }
+      archiveFilter = target === "favorites" ? "favorites" : "all";
+      switchTab("archive");
+      renderHistory();
+    }
+
+    function bindEvents() {
+      window.addEventListener("resize", syncMobileLayoutClass);
+      window.addEventListener("orientationchange", syncMobileLayoutClass);
+      $$(".tab-btn").forEach((button) => button.addEventListener("click", () => switchTab(button.dataset.tab)));
+      $$(".stat").forEach((button) => button.addEventListener("click", () => handleStatClick(button.dataset.statTarget)));
+      $("#characterManageBtn").addEventListener("click", openCharacterManager);
+      $("#closeCharacterModal").addEventListener("click", closeCharacterManager);
+      $("#closeArchivePreviewModal").addEventListener("click", closeArchivePreview);
+      $("#characterModal").addEventListener("click", (event) => {
+        if (event.target.id === "characterModal") closeCharacterManager();
+      });
+      $("#archivePreviewModal").addEventListener("click", (event) => {
+        if (event.target.id === "archivePreviewModal" || event.target.closest("[data-close-archive-preview]")) closeArchivePreview();
+      });
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape" && !$("#characterModal").hidden) closeCharacterManager();
+        if (event.key === "Escape" && !$("#archivePreviewModal").hidden) closeArchivePreview();
+      });
+      $("#darkToggle").addEventListener("click", () => { state.darkMode = !state.darkMode; saveState(); renderAll(); });
+      $("#saveTodayMeBtn").addEventListener("click", () => {
+        saveUserProfileFromInputs();
+        saveTodayRecordFromInputs();
+        toast("저장했어요.");
+      });
+      $("#receiveBtn").addEventListener("click", () => receiveLetter());
+      $("#favoriteBtn").addEventListener("click", () => toggleFavorite(state.currentLetterId));
+      $("#screenshotBtn").addEventListener("click", downloadLetterScreenshot);
+      $("#targetCharacterSelect").addEventListener("change", (event) => updateSelectedCharacter(event.target.value));
+      $("#newsTargetCharacterSelect").addEventListener("change", (event) => updateSelectedCharacter(event.target.value));
+      $("#newsActions").addEventListener("click", (event) => {
+        if (event.target.closest("[data-news-refresh]")) receiveNews();
+        if (event.target.closest("#screenshotNewsBtn")) downloadNewsScreenshot();
+      });
+      $("#showLetterArchive").addEventListener("click", () => { archiveMode = "letters"; renderHistory(); });
+      $("#showNewsArchive").addEventListener("click", () => { archiveMode = "news"; renderHistory(); });
+      $("#showAllLetters").addEventListener("click", () => { archiveFilter = "all"; renderHistory(); });
+      $("#showFavoriteLetters").addEventListener("click", () => { archiveFilter = "favorites"; renderHistory(); });
+      $("#archiveCharacterFilter").addEventListener("change", (event) => { archiveCharacterFilter = event.target.value; renderHistory(); });
+      $("#archiveSort").addEventListener("change", (event) => { archiveSort = event.target.value; renderHistory(); });
+      $("#resetFormBtn").addEventListener("click", resetForm);
+      $("#images").addEventListener("change", (event) => handleImages([...event.target.files]));
+
+      $("#imagePreview").addEventListener("click", async (event) => {
+        const remove = event.target.closest("[data-delete-preview]");
+        const primary = event.target.closest("[data-primary-preview]");
+        if (remove) {
+          const id = remove.dataset.deletePreview;
+          const image = pendingImages.find((item) => item.id === id);
+          if (!image || !confirm("이 이미지만 삭제할까요?")) return;
+          await deleteImage(id);
+          pendingImages = pendingImages.filter((item) => item.id !== id);
+          if (pendingPrimaryImageId === id) pendingPrimaryImageId = pendingImages[0]?.id || "";
+          const editingId = $("#editingId").value;
+          const editingCharacter = getCharacterById(editingId);
+          if (editingCharacter) {
+            editingCharacter.images = editingCharacter.images.filter((item) => item.id !== id);
+            if (editingCharacter.primaryImageId === id) editingCharacter.primaryImageId = editingCharacter.images[0]?.id || "";
+            state.letters.forEach((letter) => {
+              if (letter.characterId === editingId && letter.image?.id === id) letter.image = editingCharacter.images[0] || null;
+            });
+            if (state.currentNews?.characterId === editingId && state.currentNews.image?.id === id) {
+              state.currentNews.image = editingCharacter.images[0] || null;
+            }
+            saveState();
+            renderStats();
+            renderCharacters();
+            renderHistory();
+          }
+          renderImagePreview();
+          updateStorageInfo();
+          toast("이미지를 삭제했어요.");
+        }
+        if (primary) {
+          pendingPrimaryImageId = primary.dataset.primaryPreview;
+          const editingCharacter = getCharacterById($("#editingId").value);
+          if (editingCharacter) {
+            editingCharacter.primaryImageId = pendingPrimaryImageId;
+            saveState();
+            renderCharacters();
+          }
+          renderImagePreview();
+          toast("대표 이미지로 지정했어요.");
+        }
+      });
+
+      $("#categoryButtons").addEventListener("click", (event) => {
+        const button = event.target.closest("[data-category]");
+        if (!button) return;
+        state.selectedCategory = button.dataset.category;
+        saveState();
+        renderCategories();
+      });
+
+      $("#characterForm").addEventListener("submit", async (event) => {
+        event.preventDefault();
+        clearFormError();
+        try {
+          const character = normalizeCharacter(collectCharacterFromForm());
+          const existingIndex = state.characters.findIndex((item) => item.id === character.id);
+          if (existingIndex >= 0) {
+            const oldImages = state.characters[existingIndex].images || [];
+            const removed = oldImages.filter((old) => !character.images.some((image) => image.id === old.id));
+            for (const image of removed) await deleteImage(image.id);
+            state.characters[existingIndex] = character;
+          } else {
+            state.characters.unshift(character);
+          }
+          saveState();
+          resetForm();
+          renderAll();
+          toast("저장되었습니다.");
+        } catch (error) {
+          showFormError(error.message || String(error));
+        }
+      });
+
+      $("#characterList").addEventListener("click", (event) => {
+        const edit = event.target.closest("[data-edit]");
+        const letterFrom = event.target.closest("[data-letter-from]");
+        const remove = event.target.closest("[data-delete-character]");
+        if (edit) fillForm(getCharacterById(edit.dataset.edit));
+        if (letterFrom) receiveLetter(getCharacterById(letterFrom.dataset.letterFrom));
+        if (remove) deleteCharacter(remove.dataset.deleteCharacter);
+      });
+
+      $("#historyList").addEventListener("click", (event) => {
+        const open = event.target.closest("[data-open-letter]");
+        const fav = event.target.closest("[data-toggle-favorite]");
+        const remove = event.target.closest("[data-delete-letter]");
+        const openNews = event.target.closest("[data-open-news]");
+        const removeNews = event.target.closest("[data-delete-news]");
+        if (open) {
+          openArchivePreview("letter", open.dataset.openLetter);
+        }
+        if (fav) toggleFavorite(fav.dataset.toggleFavorite);
+        if (remove) deleteLetter(remove.dataset.deleteLetter);
+        if (openNews) {
+          openArchivePreview("news", openNews.dataset.openNews);
+        }
+        if (removeNews) deleteNewsArchiveItem(removeNews.dataset.deleteNews);
+      });
+    }
+
+    function setupOptions() {
+      $("#tone").innerHTML = `<option value="" disabled selected>예: 다정함, 장난꾸러기, 차분함</option>${toneStyles.map((tone) => `<option>${tone}</option>`).join("")}`;
+      $("#categoryButtons").innerHTML = categories.map((category) => `<button type="button" class="category-btn" data-category="${category}">${category}</button>`).join("");
+    }
+
+    async function init() {
+      syncMobileLayoutClass();
+      setupOptions();
+      bindEvents();
+      await migrateLegacyImages();
+      renderAll();
+    }
+
+    init();
+  </script>
+</body>
+</html>
