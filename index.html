@@ -557,15 +557,17 @@
     .danger-btn { color: #8d342d; background: rgba(216, 166, 160, 0.18); }
 
     .letter-actions {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-wrap: wrap;
       gap: 8px;
       margin: 10px 0 14px;
     }
 
     .letter-actions .ghost-btn {
-      width: 100%;
-      min-width: 0;
+      width: auto;
+      min-width: 180px;
       padding-inline: 10px;
       white-space: nowrap;
     }
@@ -810,8 +812,8 @@
 
     .archive-tools {
       display: grid;
-      grid-template-columns: auto auto minmax(180px, 1fr) minmax(140px, 0.6fr);
-      gap: 8px;
+      grid-template-columns: minmax(180px, 1fr) minmax(140px, 0.6fr);
+      gap: 10px;
       align-items: end;
       margin-bottom: 14px;
     }
@@ -830,6 +832,30 @@
     .archive-mode-tabs button.active {
       background: rgba(216, 166, 160, 0.28);
       border-color: var(--rose);
+    }
+
+    .data-management {
+      margin-top: 16px;
+      padding-top: 14px;
+      border-top: 1px solid var(--line);
+      display: grid;
+      gap: 10px;
+    }
+
+    .data-management h3 {
+      margin: 0;
+      font-size: 16px;
+      color: var(--ink);
+    }
+
+    .backup-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .backup-actions button {
+      flex: 0 1 180px;
     }
 
     .workspace-grid {
@@ -1528,7 +1554,7 @@
       .category-grid { gap: 7px; }
       .category-btn { min-height: 48px; padding: 8px 7px; font-size: 13px; }
       .primary-btn, .secondary-btn, .ghost-btn, .danger-btn { min-height: 50px; padding: 12px 13px; }
-      .letter-actions { gap: 7px; }
+      .letter-actions { gap: 7px; justify-content: center; }
       .letter-actions .ghost-btn { min-height: 48px; padding: 10px 8px; font-size: 13px; }
       .letter-stage {
         width: 100%;
@@ -1607,7 +1633,12 @@
       .history-card { grid-template-columns: 52px minmax(0, 1fr); }
       .mini-thumb { width: 52px; }
       .form-actions { grid-template-columns: 1fr; }
-      .archive-tools { grid-template-columns: 1fr 1fr; }
+      .archive-tools { grid-template-columns: 1fr; }
+      .backup-actions {
+        display: grid;
+        grid-template-columns: 1fr;
+      }
+      .backup-actions button { width: 100%; }
       .news-stage { min-height: auto; padding: 14px; }
       .news-card { min-height: 460px; padding: 18px; }
       .news-head { grid-template-columns: 58px minmax(0, 1fr); gap: 10px; }
@@ -1822,8 +1853,6 @@
             <button class="secondary-btn" type="button" id="showNewsArchive">오늘의 소식</button>
           </div>
           <div class="archive-tools">
-            <button class="secondary-btn" type="button" id="showAllLetters">전체 편지</button>
-            <button class="secondary-btn" type="button" id="showFavoriteLetters">즐겨찾기</button>
             <label>캐릭터별 보기
               <select id="archiveCharacterFilter">
                 <option value="all">전체 캐릭터</option>
@@ -1837,6 +1866,15 @@
             </label>
           </div>
           <div class="history-list" id="historyList"></div>
+          <div class="data-management">
+            <h3>데이터 관리</h3>
+            <div class="backup-actions">
+              <button class="secondary-btn" type="button" id="exportBackupBtn">백업 내보내기</button>
+              <button class="ghost-btn" type="button" id="importBackupBtn">백업 불러오기</button>
+              <input id="backupFileInput" type="file" accept="application/json,.json" hidden />
+            </div>
+            <p class="hint">백업 파일은 JSON 형식으로 저장됩니다. 기기를 바꾸거나 브라우저 데이터를 삭제하기 전에 백업해두세요.</p>
+          </div>
         </div>
       </section>
       </div>
@@ -1873,9 +1911,8 @@
             </label>
             <button class="primary-btn" id="receiveBtn" type="button">오늘의 편지 받기</button>
             <div class="letter-actions">
-              <button class="ghost-btn" id="favoriteBtn" type="button" disabled>☆ 즐겨찾기</button>
               <button class="ghost-btn" id="screenshotBtn" type="button" disabled>📸 스크린샷</button>
-              <p class="mobile-screenshot-hint span-2">모바일에서는 기기의 기본 스크린샷 기능을 이용해주세요.</p>
+              <p class="mobile-screenshot-hint">모바일에서는 기기의 기본 스크린샷 기능을 이용해주세요.</p>
             </div>
             <p class="hint">등록된 캐릭터 중 한 명이 편지를 전합니다.</p>
             
@@ -2015,6 +2052,24 @@
       "https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js",
       "https://unpkg.com/html2canvas@1.4.1/dist/html2canvas.min.js"
     ];
+    const UI_TEXT = {
+      archiveRoot: "보관함",
+      archiveTitleLetters: "받은 편지",
+      archiveTitleNews: "오늘의 소식",
+      allCharacters: "전체 캐릭터",
+      newest: "최신순",
+      oldest: "오래된순",
+      read: "읽기",
+      delete: "삭제",
+      emptyLetters: "아직 받은 편지가 없어요.",
+      emptyNews: "아직 오늘의 소식이 없어요.",
+      backupReady: "백업 파일을 저장하거나 공유해주세요.",
+      backupDownloadTried: "백업 파일 다운로드를 시도했어요. 내 파일의 다운로드 폴더를 확인해주세요.",
+      backupFailed: "모바일 브라우저에서 자동 저장이 제한될 수 있어요. 다시 시도하거나 다른 브라우저를 이용해주세요.",
+      backupConfirmRestore: "현재 저장된 데이터가 백업 파일 내용으로 대체됩니다. 계속할까요?",
+      backupRestored: "백업을 불러왔어요. 화면을 새로고침합니다.",
+      backupInvalid: "백업 파일을 읽을 수 없어요."
+    };
 
     const categories = ["랜덤", "아침 인사", "밤 인사", "응원", "다정한 말", "일상 대화", "개그", "캐릭터 전용"];
     const toneStyles = ["다정함", "장난기", "차분함", "현실조언형", "귀족형", "츤데레", "활발함", "감성적"];
@@ -2238,7 +2293,6 @@
 
     let state = loadState();
     let archiveMode = "letters";
-    let archiveFilter = "all";
     let archiveCharacterFilter = "all";
     let archiveSort = "newest";
     let pendingImages = [];
@@ -3416,7 +3470,6 @@
               <p>${state.characters.length ? "오늘의 편지 받기 버튼을 눌러보세요." : "캐릭터를 등록하고 오늘의 편지를 받아보세요."}</p>
             </div>
           </div>`;
-        $("#favoriteBtn").disabled = true;
         $("#screenshotBtn").disabled = true;
         updateScreenshotControls();
         return;
@@ -3450,9 +3503,7 @@
         ${doodleEmoji ? `<div class="letter-doodle" aria-hidden="true">${escapeHtml(doodleEmoji)}</div>` : ""}
       `;
       hydrateImageElement($("#currentLetterImage"), letter.image);
-      $("#favoriteBtn").disabled = false;
       $("#screenshotBtn").disabled = false;
-      $("#favoriteBtn").textContent = letter.favorite ? "★ 즐겨찾기됨" : "☆ 즐겨찾기";
       updateScreenshotControls();
     }
 
@@ -3466,7 +3517,6 @@
       if (!$("#statCharacters")) return;
       $("#statCharacters").textContent = state.characters.length;
       $("#statLetters").textContent = state.letters.length;
-      $("#statFavorites").textContent = state.letters.filter((letter) => letter.favorite).length;
     }
 
     function renderProfile() {
@@ -3543,17 +3593,15 @@
     }
 
     function renderHistory() {
-      $$("#showLetterArchive, #showNewsArchive").forEach((button) => {
-        button.classList.toggle("active", button.id === (archiveMode === "letters" ? "showLetterArchive" : "showNewsArchive"));
-      });
       const archiveTools = $(".archive-tools");
       if (archiveTools) archiveTools.style.display = archiveMode === "letters" ? "" : "none";
+      $("#showLetterArchive")?.classList.toggle("active", archiveMode === "letters");
+      $("#showNewsArchive")?.classList.toggle("active", archiveMode === "news");
       if (archiveMode === "news") {
         renderNewsArchive();
         return;
       }
-      const favorites = state.letters.filter((letter) => letter.favorite);
-      let historyLetters = archiveFilter === "favorites" ? favorites : state.letters;
+      let historyLetters = state.letters;
       if (archiveCharacterFilter !== "all") {
         historyLetters = historyLetters.filter((letter) => letter.characterId === archiveCharacterFilter);
       }
@@ -3562,27 +3610,26 @@
         const right = new Date(b.createdAt || 0).getTime();
         return archiveSort === "oldest" ? left - right : right - left;
       });
-      $("#archiveTitle").textContent = archiveFilter === "favorites" ? "즐겨찾기 편지" : "받은 편지";
+      $("#archiveTitle").textContent = UI_TEXT.archiveTitleLetters;
       renderArchiveControls();
       $("#historyList").innerHTML = historyLetters.length ? historyLetters.map((letter, index) => `
         <article class="history-card">
           <div class="mini-thumb"><img src="${fallbackImage}" data-history-image="${index}" alt=""></div>
           <div>
-            <b class="history-title">${letter.favorite ? "★ " : ""}${escapeHtml(letter.title)}</b>
+            <b class="history-title">${escapeHtml(letter.title)}</b>
             <div class="history-meta">${escapeHtml(letter.characterName)} · ${escapeHtml(letter.dateLabel || formatLetterDate(letter.createdAt))}</div>
             <div class="card-actions">
-              <button type="button" data-open-letter="${letter.id}">읽기</button>
-              <button type="button" data-toggle-favorite="${letter.id}">${letter.favorite ? "★ 즐겨찾기됨" : "☆ 즐겨찾기"}</button>
-              <button type="button" data-delete-letter="${letter.id}">삭제</button>
+              <button type="button" data-open-letter="${letter.id}">${UI_TEXT.read}</button>
+              <button type="button" data-delete-letter="${letter.id}">${UI_TEXT.delete}</button>
             </div>
           </div>
         </article>
-      `).join("") : `<p class="hint">${archiveFilter === "favorites" ? "즐겨찾기한 편지가 없어요." : "아직 받은 편지가 없어요."}</p>`;
+      `).join("") : `<p class="hint">${UI_TEXT.emptyLetters}</p>`;
       historyLetters.forEach((letter, index) => hydrateImageElement($(`[data-history-image="${index}"]`), letter.image));
     }
 
     function renderNewsArchive() {
-      $("#archiveTitle").textContent = "오늘의 소식";
+      $("#archiveTitle").textContent = UI_TEXT.archiveTitleNews;
       const list = $("#historyList");
       const archived = [...(state.newsArchive || [])].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
       list.innerHTML = archived.length ? archived.map((news, index) => `
@@ -3594,12 +3641,12 @@
             <div class="history-meta">${escapeHtml(formatLetterDate(news.createdAt))}</div>
             <p class="hint">${escapeHtml(news.quote).slice(0, 80)}</p>
             <div class="card-actions">
-              <button type="button" data-open-news="${news.id}">보기</button>
-              <button type="button" data-delete-news="${news.id}">삭제</button>
+              <button type="button" data-open-news="${news.id}">${UI_TEXT.read}</button>
+              <button type="button" data-delete-news="${news.id}">${UI_TEXT.delete}</button>
             </div>
           </div>
         </article>
-      `).join("") : `<p class="hint">보관한 오늘의 소식이 없어요.</p>`;
+      `).join("") : `<p class="hint">${UI_TEXT.emptyNews}</p>`;
       archived.forEach((news, index) => hydrateImageElement($(`[data-news-archive-image="${index}"]`), news.image));
     }
 
@@ -3607,7 +3654,7 @@
       const characterSelect = $("#archiveCharacterFilter");
       const sortSelect = $("#archiveSort");
       if (characterSelect) {
-        const options = [`<option value="all">전체 캐릭터</option>`].concat(
+        const options = [`<option value="all">${UI_TEXT.allCharacters}</option>`].concat(
           state.characters.map((character) => `<option value="${character.id}">${escapeHtml(getDisplayName(character))}</option>`)
         );
         characterSelect.innerHTML = options.join("");
@@ -4188,14 +4235,6 @@
       toast("오늘의 소식을 삭제했어요.");
     }
 
-    function toggleFavorite(id) {
-      const letter = state.letters.find((item) => item.id === id);
-      if (!letter) return;
-      letter.favorite = !letter.favorite;
-      saveState();
-      renderAll();
-    }
-
     function sanitizeFileName(value) {
       return String(value || "sim")
         .trim()
@@ -4254,6 +4293,129 @@
         reader.onerror = reject;
         reader.readAsDataURL(blob);
       });
+    }
+
+    function collectBackupImageRefs() {
+      const refs = new Map();
+      const add = (image) => {
+        if (image?.type === "indexedDB" && image.id) refs.set(image.id, image);
+      };
+      state.characters.forEach((character) => asArray(character.images).forEach(add));
+      state.letters.forEach((letter) => add(letter.image));
+      asArray(state.newsArchive).forEach((news) => add(news.image));
+      add(state.currentNews?.image);
+      return refs;
+    }
+
+    async function collectBackupImages() {
+      const images = [];
+      for (const [id, ref] of collectBackupImageRefs()) {
+        try {
+          const record = await getImage(id);
+          if (!record?.blob) continue;
+          images.push({
+            id,
+            name: record.name || ref.name || "",
+            mime: record.mime || record.blob.type || "image/png",
+            size: record.size || record.blob.size || 0,
+            createdAt: record.createdAt || "",
+            dataUrl: await blobToDataUrl(record.blob)
+          });
+        } catch (error) {
+          console.warn("Backup image skipped", id, error);
+        }
+      }
+      return images;
+    }
+
+    async function createBackupPayload() {
+      return {
+        app: "sims-mailbox",
+        backupVersion: 1,
+        createdAt: new Date().toISOString(),
+        storageKey: STORAGE_KEY,
+        dataVersion: DATA_VERSION,
+        state: sanitizeForLocalStorage(state),
+        images: await collectBackupImages()
+      };
+    }
+
+    function downloadBlobFile(blob, filename) {
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    function shouldUseMobileBackupShare() {
+      const ua = navigator.userAgent || "";
+      return /Android|iPhone|iPad|iPod|Mobile|Windows Phone/i.test(ua) ||
+        window.matchMedia("(pointer: coarse)").matches ||
+        window.innerWidth <= 860;
+    }
+
+    async function exportBackup() {
+      try {
+        const payload = await createBackupPayload();
+        const filename = `sims-mailbox-backup-${screenshotDateLabel(new Date())}.json`;
+        const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+        const file = new File([blob], filename, { type: "application/json" });
+        if (shouldUseMobileBackupShare() && navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+          toast(UI_TEXT.backupReady);
+          await navigator.share({ files: [file], title: "심즈 우체통 백업" });
+          return;
+        }
+        downloadBlobFile(blob, filename);
+        toast(UI_TEXT.backupDownloadTried);
+      } catch (error) {
+        console.warn("Backup export failed", error);
+        toast(UI_TEXT.backupFailed);
+      }
+    }
+
+    async function restoreBackupImages(images = []) {
+      for (const image of asArray(images)) {
+        if (!image?.id || !image.dataUrl) continue;
+        try {
+          const blob = await dataUrlToBlob(image.dataUrl);
+          await putImage({
+            id: image.id,
+            blob,
+            mime: image.mime || blob.type || "image/png",
+            size: blob.size,
+            name: image.name || "backup-image",
+            createdAt: image.createdAt || new Date().toISOString()
+          });
+        } catch (error) {
+          console.warn("Backup image restore skipped", image.id, error);
+        }
+      }
+    }
+
+    function isValidBackupPayload(payload) {
+      return Boolean(payload && payload.app === "sims-mailbox" && payload.storageKey && payload.state);
+    }
+
+    async function importBackupFile(file) {
+      if (!file) return;
+      try {
+        const payload = JSON.parse(await file.text());
+        if (!isValidBackupPayload(payload)) throw new Error("Invalid backup payload");
+        if (!confirm(UI_TEXT.backupConfirmRestore)) return;
+        await restoreBackupImages(payload.images);
+        state = importStatePayload(payload.state);
+        saveState();
+        renderAll();
+        toast(UI_TEXT.backupRestored);
+        window.setTimeout(() => window.location.reload(), 700);
+      } catch (error) {
+        console.warn("Backup import failed", error);
+        toast(UI_TEXT.backupInvalid);
+      }
     }
 
     async function imageRefToDataUrl(imageRef) {
@@ -4479,7 +4641,6 @@
         toast("저장했어요.");
       });
       $("#receiveBtn").addEventListener("click", () => receiveLetter());
-      $("#favoriteBtn").addEventListener("click", () => toggleFavorite(state.currentLetterId));
       $("#screenshotBtn").addEventListener("click", downloadLetterScreenshot);
       $("#targetCharacterSelect").addEventListener("change", (event) => updateSelectedCharacter(event.target.value));
       $("#newsTargetCharacterSelect").addEventListener("change", (event) => updateSelectedCharacter(event.target.value));
@@ -4489,10 +4650,15 @@
       });
       $("#showLetterArchive").addEventListener("click", () => { archiveMode = "letters"; renderHistory(); });
       $("#showNewsArchive").addEventListener("click", () => { archiveMode = "news"; renderHistory(); });
-      $("#showAllLetters").addEventListener("click", () => { archiveFilter = "all"; renderHistory(); });
-      $("#showFavoriteLetters").addEventListener("click", () => { archiveFilter = "favorites"; renderHistory(); });
       $("#archiveCharacterFilter").addEventListener("change", (event) => { archiveCharacterFilter = event.target.value; renderHistory(); });
       $("#archiveSort").addEventListener("change", (event) => { archiveSort = event.target.value; renderHistory(); });
+      $("#exportBackupBtn").addEventListener("click", exportBackup);
+      $("#importBackupBtn").addEventListener("click", () => $("#backupFileInput").click());
+      $("#backupFileInput").addEventListener("change", async (event) => {
+        const file = event.target.files?.[0];
+        if (file) await importBackupFile(file);
+        event.target.value = "";
+      });
       $("#resetFormBtn").addEventListener("click", resetForm);
       $("#images").addEventListener("change", (event) => handleImages([...event.target.files]));
 
@@ -4581,14 +4747,12 @@
 
       $("#historyList").addEventListener("click", (event) => {
         const open = event.target.closest("[data-open-letter]");
-        const fav = event.target.closest("[data-toggle-favorite]");
         const remove = event.target.closest("[data-delete-letter]");
         const openNews = event.target.closest("[data-open-news]");
         const removeNews = event.target.closest("[data-delete-news]");
         if (open) {
           openArchivePreview("letter", open.dataset.openLetter);
         }
-        if (fav) toggleFavorite(fav.dataset.toggleFavorite);
         if (remove) deleteLetter(remove.dataset.deleteLetter);
         if (openNews) {
           openArchivePreview("news", openNews.dataset.openNews);
