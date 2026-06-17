@@ -82,6 +82,18 @@
       letter-spacing: 0;
     }
 
+    .app-intro {
+      margin: -2px 0 14px;
+      padding: 10px 13px;
+      color: var(--muted);
+      background: color-mix(in srgb, var(--paper) 68%, transparent);
+      border: 1px solid color-mix(in srgb, var(--line) 72%, transparent);
+      border-radius: 14px;
+      font-size: 14px;
+      font-weight: 800;
+      line-height: 1.55;
+    }
+
     .top-actions {
       display: flex;
       gap: 8px;
@@ -121,6 +133,53 @@
 
     .view { display: none; }
     .view.active { display: block; }
+
+    .start-guide-card {
+      grid-column: 1 / -1;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      justify-items: center;
+      gap: 14px;
+      align-items: center;
+      width: min(580px, 100%);
+      justify-self: center;
+      padding: 18px 16px;
+      background:
+        radial-gradient(circle at 94% 18%, rgba(216, 166, 160, 0.16), transparent 24%),
+        color-mix(in srgb, var(--paper) 84%, transparent);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: 0 12px 28px rgba(72, 52, 35, 0.08);
+    }
+
+    .start-guide-card[hidden] {
+      display: none !important;
+    }
+
+    .workspace-grid.mode-news .start-guide-card,
+    .workspace-grid.mode-archive .start-guide-card {
+      display: none !important;
+    }
+
+    .start-guide-card h2 {
+      margin: 0;
+      font-size: 19px;
+      text-align: center;
+    }
+
+    .start-guide-card p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 800;
+      line-height: 1.6;
+      text-align: center;
+    }
+
+    .start-guide-card .secondary-btn {
+      min-width: 150px;
+      padding-inline: 14px;
+    }
 
     .mail-grid {
       display: grid;
@@ -1475,6 +1534,11 @@
         padding: 8px 10px;
         font-size: 14px;
       }
+      .app-intro {
+        margin: 0 0 12px;
+        padding: 10px 12px;
+        font-size: 13px;
+      }
       .tabs {
         gap: 4px;
         padding: 6px;
@@ -1502,13 +1566,22 @@
         display: flex;
         flex-direction: column;
       }
+      .start-guide-card {
+        order: 0;
+        grid-template-columns: 1fr;
+        gap: 12px;
+        padding: 14px;
+      }
+      .start-guide-card .secondary-btn {
+        width: 100%;
+      }
       .workspace-grid.mode-mail .actions-panel {
-        order: 1;
+        order: 2;
         width: 100%;
         min-width: 0;
       }
       .workspace-grid.mode-mail .workspace-content {
-        order: 2;
+        order: 1;
         width: 100%;
         min-width: 0;
       }
@@ -1709,14 +1782,14 @@
     }
 
     body.mobile-layout .workspace-grid.mode-mail .actions-panel {
-      order: 1 !important;
+      order: 2 !important;
       width: 100% !important;
       max-width: 100% !important;
       min-width: 0 !important;
     }
 
     body.mobile-layout .workspace-grid.mode-mail .workspace-content {
-      order: 2 !important;
+      order: 1 !important;
       width: 100% !important;
       max-width: 100% !important;
       min-width: 0 !important;
@@ -1805,6 +1878,7 @@
           <button class="secondary-btn" id="darkToggle" type="button">다크모드</button>
         </div>
       </div>
+      <p class="app-intro">📮 내가 아끼는 심에게 짧은 편지와 오늘의 소식을 받아보세요.</p>
     </header>
 
     <nav class="tabs" aria-label="주요 메뉴">
@@ -1814,14 +1888,21 @@
     </nav>
 
     <main class="workspace-grid mode-mail" id="workspaceGrid">
+      <section class="start-guide-card" id="startGuideCard" hidden>
+        <div>
+          <h2>📮 우체통을 열어볼까요?</h2>
+          <p>캐릭터를 등록하면<br>오늘의 편지와 오늘의 소식을 받을 수 있어요.</p>
+        </div>
+        <button class="secondary-btn" type="button" id="startCharacterBtn">캐릭터 등록하기</button>
+      </section>
       <div class="workspace-content">
         <section class="view active" id="view-mail">
           <article class="panel letter-stage" id="letterStage">
             <div class="letter-inner" id="letterDisplay">
               <div class="empty-letter">
                 <div>
-                  <h2>아직 우체통이 조용해요</h2>
-                  <p>캐릭터를 등록하고 오늘의 편지를 받아보세요.</p>
+                  <h2>아직 도착한 편지가 없어요</h2>
+                  <p>캐릭터를 등록하면 오늘의 작은 편지를 받을 수 있어요.</p>
                 </div>
               </div>
             </div>
@@ -1881,7 +1962,7 @@
 
       <aside class="panel actions-panel">
             <h2 class="section-title">내 상태</h2>
-            <details class="profile-box" open>
+            <details class="profile-box" id="todayMeDetails" open>
               <summary>📝 오늘의 나</summary>
               <div class="profile-grid">
                 <label>이름
@@ -2298,6 +2379,7 @@
     let pendingImages = [];
     let pendingPrimaryImageId = "";
     let dbPromise = null;
+    let todayMeDefaultSynced = false;
 
     function syncMobileLayoutClass() {
       const mobileUA = /Android|iPhone|iPad|iPod|Mobile|Windows Phone/i.test(navigator.userAgent || "");
@@ -2310,6 +2392,20 @@
         window.innerWidth <= 860;
       document.body.classList.toggle("mobile-layout", Boolean(isMobileDevice));
       updateScreenshotControls();
+    }
+
+    function applyTodayMeDefaultOpen() {
+      if (todayMeDefaultSynced) return;
+      const details = $("#todayMeDetails");
+      if (!details) return;
+      details.open = !document.body.classList.contains("mobile-layout");
+      todayMeDefaultSynced = true;
+    }
+
+    function renderStartGuide() {
+      const guide = $("#startGuideCard");
+      if (!guide) return;
+      guide.hidden = state.characters.length > 0;
     }
 
     function escapeHtml(value) {
@@ -3466,8 +3562,8 @@
         display.innerHTML = `
           <div class="empty-letter">
             <div>
-              <h2>${state.characters.length ? "우체통 문을 열어볼까요?" : "아직 우체통이 조용해요"}</h2>
-              <p>${state.characters.length ? "오늘의 편지 받기 버튼을 눌러보세요." : "캐릭터를 등록하고 오늘의 편지를 받아보세요."}</p>
+              <h2>${state.characters.length ? "우체통 문을 열어볼까요?" : "아직 도착한 편지가 없어요"}</h2>
+              <p>${state.characters.length ? "오늘의 편지 받기 버튼을 눌러보세요." : "캐릭터를 등록하면 오늘의 작은 편지를 받을 수 있어요."}</p>
             </div>
           </div>`;
         $("#screenshotBtn").disabled = true;
@@ -3956,6 +4052,7 @@
       renderStats();
       renderCategories();
       renderProfile();
+      renderStartGuide();
       renderCharacters();
       renderCharacterTargets();
       renderHistory();
@@ -4622,6 +4719,7 @@
       window.addEventListener("orientationchange", syncMobileLayoutClass);
       $$(".tab-btn").forEach((button) => button.addEventListener("click", () => switchTab(button.dataset.tab)));
       $("#characterManageBtn").addEventListener("click", openCharacterManager);
+      $("#startCharacterBtn").addEventListener("click", openCharacterManager);
       $("#closeCharacterModal").addEventListener("click", closeCharacterManager);
       $("#closeArchivePreviewModal").addEventListener("click", closeArchivePreview);
       $("#characterModal").addEventListener("click", (event) => {
@@ -4768,6 +4866,7 @@
 
     async function init() {
       syncMobileLayoutClass();
+      applyTodayMeDefaultOpen();
       setupOptions();
       bindEvents();
       await migrateLegacyImages();
