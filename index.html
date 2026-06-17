@@ -2032,9 +2032,6 @@
                   <label>성
                     <input id="fullName" placeholder="예: 김" maxlength="60" />
                   </label>
-                  <label>애칭
-                    <input id="nickname" placeholder="예: 꾸다" maxlength="40" />
-                  </label>
                   <label>성별
                     <select id="gender">
                       <option>여성</option>
@@ -2152,7 +2149,7 @@
       backupInvalid: "백업 파일을 읽을 수 없어요."
     };
 
-    const categories = ["랜덤", "아침 인사", "밤 인사", "응원", "다정한 말", "일상 대화", "개그", "캐릭터 전용"];
+    const categories = ["랜덤", "안부", "응원", "수다", "장난", "캐릭터 전용"];
     const toneStyles = ["다정함", "장난기", "차분함", "현실조언형", "귀족형", "츤데레", "활발함", "감성적"];
     const letterThemes = {
       cream: { label: "기본 크림 편지지", className: "theme-cream", stamps: ["✉", "✨", "🌷"] },
@@ -2430,12 +2427,55 @@
 
     function normalizeCategoryName(category) {
       const map = {
-        "좋은 아침": "아침 인사",
-        "좋은 밤": "밤 인사",
-        "좋은 말": "다정한 말"
+        "좋은 아침": "안부",
+        "아침 인사": "안부",
+        "좋은 밤": "안부",
+        "밤 인사": "안부",
+        "좋은 말": "응원",
+        "다정한 말": "응원",
+        "일상 대화": "수다",
+        "개그": "장난"
       };
       const normalized = map[category] || category || "랜덤";
       return categories.includes(normalized) ? normalized : "랜덤";
+    }
+
+    function getGreetingTimeTone(date = new Date()) {
+      const hour = date.getHours();
+      if (hour >= 5 && hour <= 10) {
+        return {
+          id: "morning",
+          label: "아침 안부",
+          topics: ["아침 공기", "창문", "차"],
+          titles: ["아침 안부", "아침 편지", "오늘 아침의 편지"],
+          lines: ["아침부터 긴 얘기는 아니고, 그냥 안부 하나 두고 갈게.", "오늘 아침은 이상하게 조금 느리게 시작됐어."]
+        };
+      }
+      if (hour >= 11 && hour <= 16) {
+        return {
+          id: "day",
+          label: "낮 안부",
+          topics: ["조용한 오후", "쉬는 시간", "커피"],
+          titles: ["낮의 안부", "잠깐의 편지", "오늘의 작은 안부"],
+          lines: ["낮이라 그런지 별것 아닌 얘기도 조금 또렷해 보여.", "지금쯤 너도 잠깐 숨 돌리고 있으면 좋겠다는 생각이 들었어."]
+        };
+      }
+      if (hour >= 17 && hour <= 21) {
+        return {
+          id: "evening",
+          label: "저녁 안부",
+          topics: ["노을", "바람", "정리"],
+          titles: ["저녁 안부", "해 질 무렵의 편지", "오늘 저녁의 편지"],
+          lines: ["저녁이 되니까 하루가 조금 접히는 느낌이야.", "해가 천천히 내려가길래 괜히 안부를 적고 싶어졌어."]
+        };
+      }
+      return {
+        id: "night",
+        label: "밤 안부",
+        topics: ["늦은 밤", "책", "창문"],
+        titles: ["밤 안부", "밤에 남기는 편지", "조용한 밤의 편지"],
+        lines: ["밤에 쓰니까 더 별말 아닌 것 같네.", "지금은 목소리보다 글자가 더 어울리는 시간 같아."]
+      };
     }
 
     function normalizeUserProfile(profile = {}) {
@@ -2519,7 +2559,6 @@
         id: character.id || uid("char"),
         displayName,
         fullName: String(character.fullName || "").trim(),
-        nickname: String(character.nickname || "").trim(),
         gender: String(character.gender || "비공개").trim(),
         age: String(character.age || "").trim(),
         mbti: String(character.mbti || "").trim(),
@@ -2542,7 +2581,7 @@
         characterId: letter.characterId || "",
         characterName: letter.characterName || letter.sender || "",
         title: letter.title || "작은 편지",
-        category: normalizeCategoryName(letter.category || "다정한 말"),
+        category: normalizeCategoryName(letter.category || "응원"),
         body: letter.body || letter.content || "",
         signature: letter.signature || "",
         accentColor: /^#[0-9a-f]{6}$/i.test(letter.accentColor || "") ? letter.accentColor : "#d8a6a0",
@@ -2584,10 +2623,13 @@
       return {
         ...data,
         dataVersion: DATA_VERSION,
-        characters: asArray(data.characters).map((character) => ({
-          ...character,
-          images: asArray(character.images).filter((image) => image?.type === "indexedDB" && image.id)
-        })),
+        characters: asArray(data.characters).map((character) => {
+          const { nickname, ...savedCharacter } = character;
+          return {
+            ...savedCharacter,
+            images: asArray(character.images).filter((image) => image?.type === "indexedDB" && image.id)
+          };
+        }),
         letters: asArray(data.letters).map((letter) => ({
           ...letter,
           image: letter.image?.type === "indexedDB" ? letter.image : null
@@ -2895,15 +2937,20 @@
       const text = writerText(character);
       const base = ["cream", "floral", "vintage", "diary", "check", "postcard", "doodle", "luxury", "moon"];
       const map = {
-        "아침 인사": ["cream", "floral", "check", "postcard"],
-        "밤 인사": ["moon", "vintage", "cream", "luxury"],
+        "안부": ["cream", "diary", "vintage", "moon"],
         "응원": ["floral", "cream", "check", "diary"],
-        "다정한 말": ["cream", "floral", "postcard", "moon"],
-        "일상 대화": ["diary", "check", "vintage", "cream"],
-        "개그": ["doodle", "check", "postcard", "diary"],
+        "수다": ["diary", "check", "vintage", "cream"],
+        "장난": ["doodle", "check", "postcard", "diary"],
         "캐릭터 전용": ["cream", "diary", "postcard", "floral", "vintage"]
       };
       const pool = [...(map[categoryName] || base), ...(map[categoryName] || base)];
+      if (categoryName === "안부") {
+        const tone = getGreetingTimeTone();
+        if (tone.id === "morning") pool.push("cream", "floral", "check");
+        if (tone.id === "day") pool.push("diary", "cream", "postcard");
+        if (tone.id === "evening") pool.push("vintage", "postcard", "cream");
+        if (tone.id === "night") pool.push("moon", "vintage", "luxury");
+      }
       if (/사진|스샷|카메라|예술|감성|다온/.test(text)) pool.push("postcard", "floral", "diary");
       if (/커피|업무|현실|계획|휘건|차분/.test(text)) pool.push("vintage", "diary", "check");
       if (/자연|농장|식물|동물|양|포피|세이지/.test(text)) pool.push("floral", "check", "vintage");
@@ -2935,16 +2982,15 @@
       const displayName = getDisplayName(character);
       const emoji = getSignatureEmoji(character);
       const prefix = emoji ? `${emoji} ` : "";
+      const greetingTone = getGreetingTimeTone();
       const titleMap = {
-        "아침 인사": [`${displayName}의 아침 편지`, `${displayName}의 아침 안부`, `${displayName}의 작은 안부`],
-        "밤 인사": [`${displayName}의 편지`, `${displayName}이 남기는 밤 인사`, `${displayName}의 조용한 안부`],
+        "안부": [`${displayName}의 ${sample(greetingTone.titles)}`, `${displayName}의 작은 안부`, `${displayName}에게서 온 편지`],
         "응원": [`${displayName}이 전하는 말`, `${displayName}의 작은 응원`, `${displayName}에게서 온 편지`],
-        "다정한 말": [`${displayName}의 편지`, `${displayName}의 작은 안부`, `${displayName}이 전하고 싶은 말`],
-        "일상 대화": [`오늘의 ${displayName}`, `${displayName}의 사소한 이야기`, `${displayName}의 편지`],
-        "개그": [`${displayName}의 가벼운 편지`, `${displayName}의 장난스러운 안부`, `오늘의 ${displayName}`],
+        "수다": [`오늘의 ${displayName}`, `${displayName}의 사소한 이야기`, `${displayName}의 편지`],
+        "장난": [`${displayName}의 가벼운 편지`, `${displayName}의 장난스러운 안부`, `오늘의 ${displayName}`],
         "캐릭터 전용": [`${displayName}의 작은 안부`, `${displayName}의 편지`, `${displayName}이 전하는 말`]
       };
-      return `${prefix}${sample(titleMap[c] || titleMap["다정한 말"])}`;
+      return `${prefix}${sample(titleMap[c] || titleMap["응원"])}`;
     }
 
     function writerText(character) {
@@ -3125,9 +3171,8 @@
       const recordTopic = topicFromRecord();
       const weighted = [...commonLetterTopics];
       if (recordTopic) weighted.unshift(recordTopic, recordTopic);
-      if (normalizeCategoryName(category) === "아침 인사") weighted.unshift("아침 공기", "창문", "차");
-      if (normalizeCategoryName(category) === "밤 인사") weighted.unshift("늦은 밤", "책", "창문");
-      if (normalizeCategoryName(category) === "개그") weighted.unshift("작은 실수", "간식", "낯선 사람");
+      if (normalizeCategoryName(category) === "안부") weighted.unshift(...getGreetingTimeTone().topics);
+      if (normalizeCategoryName(category) === "장난") weighted.unshift("작은 실수", "간식", "낯선 사람");
       const candidates = weighted.filter((topic) => !recentTopics.has(topic) && !characterRecentTopics.has(topic));
       return sample(candidates.length ? candidates : weighted);
     }
@@ -3220,11 +3265,10 @@
         "다정함": ["그냥 네 생각이 났다는 얘기야.", "별말 아닌 안부였어."]
       };
       const categoryLines = {
-        "아침 인사": ["아침부터 이런 얘기라니. 아무튼 좋은... 아니, 그냥 아침이야."],
-        "밤 인사": ["밤에 쓰니까 더 별말 아닌 것 같네."],
+        "안부": getGreetingTimeTone().lines,
         "응원": ["응원이라고 하기엔 좀 작지만, 그래도 보냄."],
-        "다정한 말": ["다정한 말 하려다가 그냥 평범한 말이 됐어."],
-        "개그": [
+        "수다": ["수다라고 하기엔 짧지만, 아무튼 네 생각이 났어."],
+        "장난": [
           "웃기려고 한 건 아닌데 조금 웃겼으면 내 승리.",
           "여기서 더 쓰면 농담을 설명하게 될 것 같아서 도망감.",
           "간식 얘기를 안 하고 끝내다니 꽤 자제했다.",
@@ -3346,10 +3390,10 @@
         "이상한 편지 끝.",
         "쓰고 보니 진짜 메모 같네."
       ];
-      if (categoryName === "아침 인사") pool.push("아침부터 별 얘기를 다 하지.");
-      if (categoryName === "밤 인사") pool.push("밤이라 그런가, 말이 조금 샜어.");
+      if (categoryName === "안부") pool.push(...getGreetingTimeTone().lines);
       if (categoryName === "응원") pool.push("응원...까지는 아니고 그냥 네 편이라는 메모.");
-      if (categoryName === "개그") pool.push("웃겼으면 됐고, 아니면 다음 기회에.");
+      if (categoryName === "수다") pool.push("수다라고 해놓고 갑자기 끝내기.");
+      if (categoryName === "장난") pool.push("웃겼으면 됐고, 아니면 다음 기회에.");
       if (isDaonLike(character)) {
         pool.unshift(
           "아, 갑자기 딴 얘기 하고 싶어졌어. 참을게.",
@@ -3431,12 +3475,16 @@
     }
 
     function composeLetterBody(character, category) {
+      const categoryName = normalizeCategoryName(category);
       const topic = pickTopic(character, category);
       const usedEndings = new Set();
       const opener = pickFreshLine(openerPool(character), "opener", character.id, usedEndings);
       const occasion = pickFreshLine(topicScenePool(topic), "lines", character.id, usedEndings);
       const recordPool = makeRecordReflectionPool(character);
-      const isJoke = normalizeCategoryName(category) === "개그";
+      const isJoke = categoryName === "장난";
+      const greetingLine = categoryName === "안부"
+        ? pickFreshLine(getGreetingTimeTone().lines, "lines", character.id, usedEndings)
+        : "";
       const interpretation = pickFreshLine(
         isJoke
           ? (recordPool.length ? [...recordPool, ...jokeStoryPool(topic, character), ...idleThoughtPool(topic, character)] : [...jokeStoryPool(topic, character), ...idleThoughtPool(topic, character)])
@@ -3472,8 +3520,8 @@
           )
         : "";
       const rawLines = lengthType === "postcard"
-        ? [opener, occasion, closing]
-        : (lengthType === "long" ? [opener, occasion, interpretation, extraLine, question, closing] : [opener, occasion, interpretation, question, closing]);
+        ? [opener, occasion, greetingLine || closing]
+        : (lengthType === "long" ? [opener, occasion, greetingLine, interpretation, extraLine, question, closing] : [opener, occasion, greetingLine, interpretation, question, closing]);
       const lines = reviewLetterLines(rawLines.filter(Boolean), topic);
       return {
         body: lines.join("\n\n"),
@@ -3645,7 +3693,6 @@
             <summary>상세 정보</summary>
             <dl>
               ${character.fullName ? `<div><dt>성</dt><dd>${escapeHtml(character.fullName)}</dd></div>` : ""}
-              ${character.nickname ? `<div><dt>애칭</dt><dd>${escapeHtml(character.nickname)}</dd></div>` : ""}
               <div><dt>성별</dt><dd>${escapeHtml(character.gender || "비공개")}</dd></div>
               ${character.age ? `<div><dt>나이</dt><dd>${escapeHtml(character.age)}</dd></div>` : ""}
               ${character.mbti ? `<div><dt>MBTI</dt><dd>${escapeHtml(character.mbti.toUpperCase())}</dd></div>` : ""}
@@ -4166,7 +4213,6 @@
         id: $("#editingId").value || uid("char"),
         displayName,
         fullName: $("#fullName").value.trim(),
-        nickname: $("#nickname").value.trim(),
         gender: $("#gender").value,
         age: $("#age").value.trim(),
         mbti: $("#mbti").value.trim(),
@@ -4188,7 +4234,6 @@
       $("#formTitle").textContent = `${getDisplayName(character)} 편집`;
       $("#displayName").value = character.displayName;
       $("#fullName").value = character.fullName;
-      $("#nickname").value = character.nickname || "";
       $("#gender").value = character.gender || "비공개";
       $("#age").value = character.age;
       $("#mbti").value = character.mbti;
